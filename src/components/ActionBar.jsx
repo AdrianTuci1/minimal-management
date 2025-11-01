@@ -1,0 +1,144 @@
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Filter, Search, CalendarIcon, ChevronLeft, ChevronRight, Plus, CalendarCheck } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useMemo, useState } from "react"
+import { format } from "date-fns"
+import { ro } from "date-fns/locale"
+import useAppStore from "@/store/appStore"
+import { getFilterColumns } from "@/config/tableColumns"
+
+const ActionBar = ({ actions = [] }) => {
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+  const [filters, setFilters] = useState({})
+  
+  const { activeMenu, selectedDate, setSelectedDate, shiftDate, jumpToToday } = useAppStore()
+
+  const formattedDate = useMemo(() => {
+    return format(selectedDate, "EEEE, d MMM", { locale: ro })
+  }, [selectedDate])
+
+  const filterColumns = useMemo(() => getFilterColumns(activeMenu), [activeMenu])
+  const hasFilters = filterColumns.length > 0
+
+  const handleFilterToggle = (columnId) => {
+    setFilters((prev) => ({
+      ...prev,
+      [columnId]: !prev[columnId],
+    }))
+  }
+
+  const activeFiltersCount = useMemo(() => {
+    return Object.values(filters).filter(Boolean).length
+  }, [filters])
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 px-4 py-2">
+      {activeMenu === "programari" ? (
+        <>
+          <div className="flex items-center rounded-xl border border-border/80 bg-muted/40">
+            <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => shiftDate(-1)}>
+              <ChevronLeft className="h-4 w-4" />
+              <span className="sr-only">Ziua anterioară</span>
+            </Button>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" className="h-10 min-w-[90px] items-center justify-start gap-2 rounded-lg px-4 py-2 text-left text-sm font-medium">
+                  <span className="font-semibold capitalize text-foreground">{formattedDate}</span>
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto rounded-lg border-border/80 bg-white p-0 shadow-xl">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(value) => {
+                    if (value) {
+                      setSelectedDate(value)
+                    }
+                    setIsCalendarOpen(false)
+                  }}
+                  locale={ro}
+                />
+              </PopoverContent>
+            </Popover>
+            <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => shiftDate(1)}>
+              <ChevronRight className="h-4 w-4" />
+              <span className="sr-only">Ziua următoare</span>
+            </Button>
+          </div>
+          <Button variant="outline" className="h-10 rounded-xl px-3" onClick={jumpToToday}>
+            <CalendarCheck className="h-4 w-4" />
+            <span className="sr-only">Astăzi</span>
+          </Button>
+        </>
+      ) : (
+        <div className="relative w-full max-w-xs">
+          <Input className="h-10 w-full rounded-xl border-border/70 pr-10" placeholder="Caută în listă" />
+          <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        </div>
+      )}
+      
+      {hasFilters && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="h-10 rounded-xl px-3" type="button">
+              <Filter className="h-4 w-4" />
+              {activeFiltersCount > 0 && (
+                <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                  {activeFiltersCount}
+                </span>
+              )}
+              <span className="sr-only">Filtre</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuLabel>Filtrează coloane</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {filterColumns.map((column) => (
+              <DropdownMenuCheckboxItem
+                key={column.id}
+                checked={filters[column.id] || false}
+                onCheckedChange={() => handleFilterToggle(column.id)}
+              >
+                {column.label}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      
+      {actions.map((action) => (
+        <Button
+          key={action.id}
+          variant={action.variant ?? "default"}
+          className="h-10 rounded-xl px-3"
+          onClick={action.onClick}
+          type="button"
+        >
+          {action.icon ? (
+            <action.icon className="h-4 w-4" />
+          ) : action.label?.includes("Adaugă") || action.label?.includes("Creează") ? (
+            <Plus className="h-4 w-4" />
+          ) : (
+            action.label
+          )}
+          {!action.label?.includes("Adaugă") && !action.label?.includes("Creează") && !action.icon && (
+            <span className="sr-only">{action.label}</span>
+          )}
+        </Button>
+      ))}
+    </div>
+  )
+}
+
+export default ActionBar
