@@ -7,8 +7,8 @@ import SpotlightSearch from "./components/SpotlightSearch"
 import KpiOverview from "./components/views/KpiOverview"
 import TreatmentsView from "./components/views/TreatmentsView"
 import PatientsView from "./components/views/PatientsView"
-import ProductsView from "./components/views/ProductsView"
 import DoctorsView from "./components/views/DoctorsView"
+import AutomatizariView from "./components/views/AutomatizariView"
 import SettingsView from "./components/views/SettingsView"
 import useAppStore from "./store/appStore"
 
@@ -172,6 +172,7 @@ function App() {
     toggleSidebarCollapsed,
     setAppointments: setStoreAppointments,
     updateAppointment,
+    openDrawer,
   } = useAppStore()
 
   const doctors = useMemo(() => initialDoctors, [])
@@ -281,6 +282,13 @@ function App() {
       onSelect: () => setActiveMenu("tratamente"),
     },
     {
+      id: "goto-automatizari",
+      title: "Deschide Automatizari",
+      description: "Gestioneaza automatizarile si workflow-urile",
+      group: "Navigare",
+      onSelect: () => setActiveMenu("automatizari"),
+    },
+    {
       id: "goto-setari",
       title: "Deschide Setari",
       description: "Configureaza programul si traducerile",
@@ -315,7 +323,7 @@ function App() {
             id: "add-patient",
             label: "Adaugă pacient",
             variant: "default",
-            onClick: () => {},
+            onClick: () => openDrawer("pacienti", null, "create"),
           },
         ]
       case "medici":
@@ -324,7 +332,7 @@ function App() {
             id: "add-doctor",
             label: "Adaugă medic",
             variant: "default",
-            onClick: () => {},
+            onClick: () => openDrawer("medici", null, "create"),
           },
         ]
       case "tratamente":
@@ -333,22 +341,22 @@ function App() {
             id: "add-treatment",
             label: "Adaugă tratament",
             variant: "default",
-            onClick: () => {},
+            onClick: () => openDrawer("tratamente", null, "create"),
           },
         ]
-      case "produse":
+      case "automatizari":
         return [
           {
-            id: "add-product",
-            label: "Adaugă produs",
+            id: "add-automation",
+            label: "Adaugă automatizare",
             variant: "default",
-            onClick: () => {},
+            onClick: () => openDrawer("automatizari", null, "create"),
           },
         ]
       default:
         return []
     }
-  }, [activeMenu])
+  }, [activeMenu, openDrawer])
 
   const renderMainContent = () => {
     switch (activeMenu) {
@@ -358,10 +366,10 @@ function App() {
         return <TreatmentsView />
       case "pacienti":
         return <PatientsView />
-      case "produse":
-        return <ProductsView />
       case "medici":
         return <DoctorsView doctors={doctors} />
+      case "automatizari":
+        return <AutomatizariView />
       case "setari":
         return <SettingsView />
       case "programari":

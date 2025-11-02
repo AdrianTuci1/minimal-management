@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
-  PlayCircle,
   RefreshCw,
   Sparkles,
+  Users,
+  MoreVertical,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -11,13 +12,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import ActionBar from "@/components/ActionBar"
 import useAppStore from "@/store/appStore"
+import ShareSpotlight from "@/components/ShareSpotlight"
 
 const menuLabels = {
   kpi: "Indicatori de performanță",
   tratamente: "Tratamente",
   programari: "Programări",
   pacienti: "Pacienți",
-  produse: "Produse",
+  automatizari: "Automatizari",
   setari: "Setari",
 }
 
@@ -25,7 +27,7 @@ const TopBar = ({ onlineUsers = [], actions = [] }) => {
   const [isMobileControlsOpen, setIsMobileControlsOpen] = useState(false)
   const primarySectionRef = useRef(null)
 
-  const { activeMenu, isSyncActive, toggleSyncActive, isPresenting, togglePresenting } = useAppStore()
+  const { activeMenu, isSyncActive, toggleSyncActive, isPresenting, togglePresenting, isShareSpotlightOpen, setIsShareSpotlightOpen } = useAppStore()
 
   const visibleUsers = useMemo(() => onlineUsers.slice(0, 4), [onlineUsers])
 
@@ -62,14 +64,6 @@ const TopBar = ({ onlineUsers = [], actions = [] }) => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={togglePresenting}
-                aria-pressed={isPresenting}
-              >
-                <PlayCircle className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
                 onClick={toggleSyncActive}
                 aria-pressed={isSyncActive}
               >
@@ -97,6 +91,23 @@ const TopBar = ({ onlineUsers = [], actions = [] }) => {
                   ))}
                 </div>
               </TooltipProvider>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={togglePresenting}
+                aria-pressed={isPresenting}
+                className="ml-2"
+              >
+                <Users className="h-4 w-4 mr-1.5" />
+                <span className="text-xs">Share</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsShareSpotlightOpen(true)}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -106,6 +117,7 @@ const TopBar = ({ onlineUsers = [], actions = [] }) => {
         <ActionBar actions={actions} />
         <Separator className="bg-border/60" />
       </header>
+      <ShareSpotlight />
     </div>
   )
 }

@@ -35,6 +35,25 @@ const useAppStore = create((set) => ({
   setIsPresenting: (presenting) => set({ isPresenting: presenting }),
   togglePresenting: () => set((state) => ({ isPresenting: !state.isPresenting })),
 
+  // Share spotlight state
+  isShareSpotlightOpen: false,
+  setIsShareSpotlightOpen: (open) => set({ isShareSpotlightOpen: open }),
+
+  // Shared emails state
+  sharedEmails: [],
+  addSharedEmail: (email, role = "can_view") =>
+    set((state) => ({
+      sharedEmails: [...state.sharedEmails, { id: Date.now().toString(), email, role }],
+    })),
+  updateSharedEmailRole: (id, role) =>
+    set((state) => ({
+      sharedEmails: state.sharedEmails.map((item) => (item.id === id ? { ...item, role } : item)),
+    })),
+  removeSharedEmail: (id) =>
+    set((state) => ({
+      sharedEmails: state.sharedEmails.filter((item) => item.id !== id),
+    })),
+
   // Appointments state
   appointments: [],
   setAppointments: (appointments) => set({ appointments }),
@@ -44,6 +63,15 @@ const useAppStore = create((set) => ({
         appointment.id === appointmentId ? { ...appointment, ...nextValues } : appointment,
       ),
     })),
+
+  // Drawer state
+  isDrawerOpen: false,
+  drawerData: null,
+  drawerViewId: null,
+  drawerMode: "edit", // "create" | "edit"
+  openDrawer: (viewId, data = null, mode = "edit") =>
+    set({ isDrawerOpen: true, drawerViewId: viewId, drawerData: data, drawerMode: mode }),
+  closeDrawer: () => set({ isDrawerOpen: false, drawerViewId: null, drawerData: null, drawerMode: "edit" }),
 }))
 
 export default useAppStore

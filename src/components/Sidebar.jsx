@@ -14,7 +14,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils"
 import {
   Activity,
-  Boxes,
   CalendarDays,
   PanelsTopLeft,
   Search,
@@ -22,6 +21,7 @@ import {
   UserCog,
   Users,
   Wand2,
+  Zap,
 } from "lucide-react"
 
 const menuItems = [
@@ -51,9 +51,9 @@ const menuItems = [
     icon: UserCog,
   },
   {
-    id: "produse",
-    label: "Produse",
-    icon: Boxes,
+    id: "automatizari",
+    label: "Automatizari",
+    icon: Zap,
   },
   {
     id: "setari",

@@ -92,31 +92,57 @@ export const tableColumns = {
       accessor: (row) => row.status,
     },
   ],
-  produse: [
+  programari: [
     {
-      id: "produs",
-      label: "Produs",
+      id: "pacient",
+      label: "Pacient",
+      accessor: (row) => row.patient,
+    },
+    {
+      id: "medic",
+      label: "Medic",
+      accessor: (row) => row.doctorId,
+    },
+    {
+      id: "tratament",
+      label: "Tratament",
+      accessor: (row) => row.treatment,
+    },
+    {
+      id: "ora",
+      label: "Oră",
+      accessor: (row) => {
+        const hours = Math.floor(row.start / 60)
+        const minutes = row.start % 60
+        return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
+      },
+    },
+    {
+      id: "durata",
+      label: "Durată",
+      accessor: (row) => `${row.duration} min`,
+    },
+    {
+      id: "status",
+      label: "Status",
+      accessor: (row) => row.status,
+    },
+  ],
+  automatizari: [
+    {
+      id: "nume",
+      label: "Nume",
       accessor: (row) => row.name,
     },
     {
-      id: "cod",
-      label: "Cod",
-      accessor: (row) => row.sku,
+      id: "eveniment",
+      label: "Eveniment",
+      accessor: (row) => row.trigger,
     },
     {
-      id: "stoc",
-      label: "Stoc",
-      accessor: (row) => row.stock,
-    },
-    {
-      id: "minim",
-      label: "Minim necesar",
-      accessor: (row) => row.minStock,
-    },
-    {
-      id: "furnizor",
-      label: "Furnizor",
-      accessor: (row) => row.supplier,
+      id: "actiune",
+      label: "Acțiune",
+      accessor: (row) => row.action,
     },
     {
       id: "status",
