@@ -11,20 +11,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { Plus, Building2, CreditCard, Sparkles, TrendingUp, Folder, BarChart3, FileText, Image, Video, X, Users, Trash2, ChevronDown, Share2, FolderPlus, MoreVertical, Copy, Settings, Pencil, ImageIcon } from "lucide-react"
+import { Plus, Building2, CreditCard, TrendingUp, Folder, BarChart3, FileText, Image, Video, X, Users, Trash2, ChevronDown, Share2, FolderPlus, MoreVertical, Copy, Settings, Pencil, ImageIcon } from "lucide-react"
 import useWorkspaceStore from "../../store/workspaceStore"
 import DashboardSidebar from "./DashboardSidebar"
 import DashboardHeader from "./DashboardHeader"
 import WorkspaceCard from "./WorkspaceCard"
 import SpotlightSearch from "../SpotlightSearch"
-
-const WORKSPACE_TYPES = [
-  { id: "clinica-dentara", label: "Clinica Dentară", icon: "🦷" },
-  { id: "hotel", label: "Hotel", icon: "🏨" },
-  { id: "sala-fitness", label: "Sală Fitness", icon: "💪" },
-  { id: "salon", label: "Salon", icon: "✂️" },
-  { id: "reparatii", label: "Reparații", icon: "🔧" },
-]
+import CreateWorkspaceModal from "./CreateWorkspaceModal"
+import UpgradePlanModal from "./UpgradePlanModal"
 
 const SUBSCRIPTION_PLANS = {
   basic: { name: "Basic", maxWorkspaces: 1, price: 50 },
@@ -91,8 +85,7 @@ function Dashboard() {
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
   const [isCreateDraftOpen, setIsCreateDraftOpen] = useState(false)
   const [isCreateTeamSpotlightOpen, setIsCreateTeamSpotlightOpen] = useState(false)
-  const [newWorkspaceName, setNewWorkspaceName] = useState("")
-  const [newWorkspaceType, setNewWorkspaceType] = useState("")
+  const [isUpgradePlanOpen, setIsUpgradePlanOpen] = useState(false)
   const [newGroupName, setNewGroupName] = useState("")
   const [newDraftName, setNewDraftName] = useState("")
   const [newDraftType, setNewDraftType] = useState("note")
@@ -100,7 +93,6 @@ function Dashboard() {
   const [newDraftMediaUrl, setNewDraftMediaUrl] = useState("")
   const [activeView, setActiveView] = useState("recents")
   
-  const workspaceNameInputRef = useRef(null)
   const draftNameInputRef = useRef(null)
 
   // Sync activeView with selectedGroupId when it changes externally (e.g., when navigating back from workspace)
@@ -273,31 +265,6 @@ function Dashboard() {
     setIsCreateWorkspaceOpen(true)
   }
 
-  // Focus input when modal opens
-  useEffect(() => {
-    if (isCreateWorkspaceOpen) {
-      setTimeout(() => {
-        workspaceNameInputRef.current?.focus()
-      }, 100)
-      
-      // Handle Escape key
-      const handleEscape = (e) => {
-        if (e.key === "Escape") {
-          setIsCreateWorkspaceOpen(false)
-          setNewWorkspaceName("")
-          setNewWorkspaceType("")
-        }
-      }
-      
-      document.addEventListener("keydown", handleEscape)
-      document.body.classList.add("overflow-hidden")
-      
-      return () => {
-        document.removeEventListener("keydown", handleEscape)
-        document.body.classList.remove("overflow-hidden")
-      }
-    }
-  }, [isCreateWorkspaceOpen])
 
   // Handle Escape key for draft modal
   useEffect(() => {
@@ -332,20 +299,25 @@ function Dashboard() {
     return workspaces.length < SUBSCRIPTION_PLANS[subscription.plan].maxWorkspaces
   }
 
-  const handleCreateWorkspace = () => {
-    if (!newWorkspaceName || !newWorkspaceType) return
+  const handleCreateWorkspace = (workspaceData) => {
+    if (!workspaceData.name || !workspaceData.type) return
     
     const groupId = activeView === "all-projects" || activeView === "drafts" ? selectedGroupId : activeView
     
     createWorkspace({
-      name: newWorkspaceName,
-      type: newWorkspaceType,
+      name: workspaceData.name,
+      type: workspaceData.type,
       groupId: groupId,
     })
     
-    setNewWorkspaceName("")
-    setNewWorkspaceType("")
     setIsCreateWorkspaceOpen(false)
+  }
+
+  const handleUpgradePlanNext = (option) => {
+    // Handle the upgrade flow - option will be "just-me" or "team"
+    console.log("Upgrade option selected:", option)
+    setIsUpgradePlanOpen(false)
+    // TODO: Implement the actual upgrade flow
   }
 
   const handleSelectWorkspace = (workspaceId) => {
@@ -1020,141 +992,23 @@ function Dashboard() {
           )}
 
           {/* Create Workspace Modal */}
-          {isCreateWorkspaceOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-              <div className="absolute inset-0" onClick={() => {
-                setIsCreateWorkspaceOpen(false)
-                setNewWorkspaceName("")
-                setNewWorkspaceType("")
-              }} />
-              
-              <div className="relative z-10 w-full max-w-md mx-4">
-                <Card className="shadow-2xl border-border/60">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl">Creează proiect nou</CardTitle>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => {
-                          setIsCreateWorkspaceOpen(false)
-                          setNewWorkspaceName("")
-                          setNewWorkspaceType("")
-                        }}
-                      >
-                        <span className="sr-only">Close</span>
-                        ×
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {!canCreateWorkspace() && (
-                      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CreditCard className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                          <span className="font-medium text-yellow-900 dark:text-yellow-100">Plan necesar</span>
-                        </div>
-                        <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
-                          Ai atins limita de spații de lucru pentru planul tău actual. Upgrade la un plan superior pentru a crea mai multe spații de lucru.
-                        </p>
-                        <Button variant="outline" className="w-full">
-                          Upgrade plan
-                        </Button>
-                      </div>
-                    )}
+          <CreateWorkspaceModal
+            open={isCreateWorkspaceOpen}
+            onClose={() => setIsCreateWorkspaceOpen(false)}
+            onCreateWorkspace={handleCreateWorkspace}
+            canCreateWorkspace={canCreateWorkspace()}
+            onUpgradeClick={() => {
+              setIsCreateWorkspaceOpen(false)
+              setIsUpgradePlanOpen(true)
+            }}
+          />
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Nume proiect</label>
-                      <Input
-                        ref={workspaceNameInputRef}
-                        placeholder="ex: Clinica Dentară Centrală"
-                        value={newWorkspaceName}
-                        onChange={(e) => setNewWorkspaceName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && newWorkspaceName && newWorkspaceType && canCreateWorkspace()) {
-                            handleCreateWorkspace()
-                          }
-                        }}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Tip proiect</label>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" className="w-full justify-between">
-                            {newWorkspaceType ? (
-                              <div className="flex items-center gap-2">
-                                <span>{WORKSPACE_TYPES.find(t => t.id === newWorkspaceType)?.icon}</span>
-                                <span>{WORKSPACE_TYPES.find(t => t.id === newWorkspaceType)?.label}</span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">Selectează tipul</span>
-                            )}
-                            <ChevronDown className="h-4 w-4 opacity-50" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-full">
-                          {WORKSPACE_TYPES.map((type) => (
-                            <DropdownMenuItem
-                              key={type.id}
-                              onClick={() => setNewWorkspaceType(type.id)}
-                              className="cursor-pointer"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span>{type.icon}</span>
-                                <span>{type.label}</span>
-                              </div>
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-
-                    {canCreateWorkspace() && (
-                      <div className="p-4 bg-muted/50 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium">Costuri</span>
-                        </div>
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <div className="flex justify-between">
-                            <span>Spațiu de lucru</span>
-                            <span className="font-medium text-foreground">50 EUR/lună</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Utilizator adițional</span>
-                            <span className="font-medium text-foreground">25 EUR/lună</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-end gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setIsCreateWorkspaceOpen(false)
-                          setNewWorkspaceName("")
-                          setNewWorkspaceType("")
-                        }}
-                      >
-                        Anulează
-                      </Button>
-                      <Button
-                        variant="default"
-                        onClick={handleCreateWorkspace}
-                        disabled={!newWorkspaceName || !newWorkspaceType || !canCreateWorkspace()}
-                      >
-                        Creează
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
+          {/* Upgrade Plan Modal */}
+          <UpgradePlanModal
+            open={isUpgradePlanOpen}
+            onClose={() => setIsUpgradePlanOpen(false)}
+            onNext={handleUpgradePlanNext}
+          />
 
           {/* Create Draft Modal */}
           {isCreateDraftOpen && (
