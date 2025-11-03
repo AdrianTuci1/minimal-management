@@ -8,7 +8,7 @@ const defaultState = {
   groups: [
     {
       id: "group-1",
-      name: "Echipa mea",
+      name: "Grupul meu",
       memberCount: 1,
       createdAt: new Date().toISOString(),
     },

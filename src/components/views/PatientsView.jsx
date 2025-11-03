@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Drawer, DrawerContent, DrawerField } from "@/components/ui/drawer"
@@ -6,80 +6,8 @@ import { getTableColumns } from "@/config/tableColumns"
 import { getDrawerInputs } from "@/config/drawerInputs.jsx"
 import useAppStore from "@/store/appStore"
 import useWorkspaceConfig from "@/hooks/useWorkspaceConfig"
+import { getDemoPatients } from "@/config/demoData"
 import { User, Calendar, FileText } from "lucide-react"
-
-const patients = [
-  {
-    name: "Ioana Marinescu",
-    email: "ioana.marinescu@email.com",
-    phone: "0723 887 210",
-    dePlata: "450 RON",
-    upcoming: "Control aparat dentar - 12 feb, 09:00",
-  },
-  {
-    name: "Adrian Pavel",
-    email: "adrian.pavel@email.com",
-    phone: "0721 535 298",
-    dePlata: "280 RON",
-    upcoming: "Strângere arcuri - 12 feb, 10:45",
-  },
-  {
-    name: "Maria Tudor",
-    email: "maria.tudor@email.com",
-    phone: "0730 611 927",
-    dePlata: "1200 RON",
-    upcoming: "Implant finalizare - 12 feb, 09:15",
-  },
-  {
-    name: "Sorina Pătrașcu",
-    email: "sorina.patrascu@email.com",
-    phone: "0745 632 110",
-    dePlata: "350 RON",
-    upcoming: "Albire profesională - 12 feb, 08:45",
-  },
-  {
-    name: "Carmen Iacob",
-    email: "carmen.iacob@email.com",
-    phone: "0733 440 118",
-    dePlata: "0 RON",
-    upcoming: "Chirurgie parodontală - 12 feb, 11:00",
-  },
-  {
-    name: "Nicu Tănase",
-    email: "nicu.tanase@email.com",
-    phone: "0720 445 987",
-    dePlata: "650 RON",
-    upcoming: "Consult ortodontic - 12 feb, 12:15",
-  },
-  {
-    name: "Elena Vasilescu",
-    email: "elena.vasilescu@email.com",
-    phone: "0746 208 315",
-    dePlata: "180 RON",
-    upcoming: "Igienizare profesională - 12 feb, 15:30",
-  },
-  {
-    name: "Marius Petru",
-    email: "marius.petru@email.com",
-    phone: "0736 553 112",
-    dePlata: "0 RON",
-    upcoming: "Control post-tratament - 12 feb, 16:45",
-  },
-  {
-    name: "Georgiana Pavel",
-    email: "georgiana.pavel@email.com",
-    phone: "0712 631 940",
-    dePlata: "890 RON",
-    upcoming: "Fațete ceramice - 13 feb, 10:00",
-  },
-  {
-    name: "Robert Ifrim",
-    email: "robert.ifrim@email.com",
-    phone: "0732 118 546",
-    dePlata: "220 RON",
-    upcoming: "Radiografie panoramică - 13 feb, 11:30",
-  },
-]
 
 const PatientsView = () => {
   const { workspaceType, getLabel } = useWorkspaceConfig()
@@ -91,6 +19,8 @@ const PatientsView = () => {
 
   const isCreateMode = drawerMode === "create"
   const displayData = isCreateMode ? formData : drawerData
+
+  const patients = useMemo(() => getDemoPatients(workspaceType), [workspaceType])
 
   useEffect(() => {
     if (isCreateMode && isDrawerOpen) {
@@ -138,7 +68,7 @@ const PatientsView = () => {
                       key={column.id}
                       className={index < columns.length - 1 ? "border-r border-border/60" : ""}
                     >
-                      {column.id === "pacient" ? (
+                      {column.id === "pacient" || column.id === "client" ? (
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
                             <AvatarFallback>

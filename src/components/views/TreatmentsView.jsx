@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Drawer, DrawerContent, DrawerField } from "@/components/ui/drawer"
@@ -6,51 +6,9 @@ import { getTableColumns } from "@/config/tableColumns"
 import { getDrawerInputs } from "@/config/drawerInputs.jsx"
 import useAppStore from "@/store/appStore"
 import useWorkspaceConfig from "@/hooks/useWorkspaceConfig"
+import { getDemoTreatments } from "@/config/demoData"
 import { cn } from "@/lib/utils"
 import { FileText } from "lucide-react"
-
-const treatments = [
-  {
-    code: "TR-014",
-    name: "Implant complet",
-    duration: "120 min",
-    doctor: "Dr. Mihai Popescu",
-    price: "€920",
-    status: "Disponibil",
-  },
-  {
-    code: "TR-032",
-    name: "Fațete ceramice",
-    duration: "90 min",
-    doctor: "Dr. Irina Stan",
-    price: "€740",
-    status: "Necesită aprobare",
-  },
-  {
-    code: "TR-021",
-    name: "Reabilitare arcadă",
-    duration: "150 min",
-    doctor: "Dr. Ana Ionescu",
-    price: "€1,120",
-    status: "Disponibil",
-  },
-  {
-    code: "TR-009",
-    name: "Albire profesională",
-    duration: "60 min",
-    doctor: "Dr. Irina Stan",
-    price: "€260",
-    status: "Promovat",
-  },
-  {
-    code: "TR-002",
-    name: "Control periodic",
-    duration: "30 min",
-    doctor: "Echipă generală",
-    price: "€80",
-    status: "Disponibil",
-  },
-]
 
 const statusTone = {
   Disponibil: "bg-emerald-500/10 text-emerald-600",
@@ -68,6 +26,8 @@ const TreatmentsView = () => {
 
   const isCreateMode = drawerMode === "create"
   const displayData = isCreateMode ? formData : drawerData
+
+  const treatments = useMemo(() => getDemoTreatments(workspaceType), [workspaceType])
 
   useEffect(() => {
     if (isCreateMode && isDrawerOpen) {

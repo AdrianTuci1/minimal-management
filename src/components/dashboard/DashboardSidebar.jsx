@@ -152,7 +152,7 @@ const DashboardSidebar = ({ activeView, onViewChange, onOpenCreateTeamSpotlight 
             onClick={() => handleViewChange("groups")}
           >
             <Users className="h-4 w-4" />
-            Echipe
+            Grupuri
           </Button>
           <Button
             variant="ghost"
@@ -168,7 +168,7 @@ const DashboardSidebar = ({ activeView, onViewChange, onOpenCreateTeamSpotlight 
         </div>
       </div>
 
-      {/* Team Section */}
+      {/* Group Section */}
       {selectedGroup && (
         <>
           <div className="border-b border-border/60 p-2">
@@ -211,7 +211,7 @@ const DashboardSidebar = ({ activeView, onViewChange, onOpenCreateTeamSpotlight 
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onOpenCreateTeamSpotlight?.()}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Creează echipă
+                  Creează grup
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

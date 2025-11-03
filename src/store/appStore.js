@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { addDays } from "date-fns"
+import { addDays, startOfWeek } from "date-fns"
 
 const useAppStore = create((set) => ({
   // Menu state
@@ -11,6 +11,43 @@ const useAppStore = create((set) => ({
   setSelectedDate: (date) => set({ selectedDate: date }),
   shiftDate: (days) => set((state) => ({ selectedDate: addDays(state.selectedDate, days) })),
   jumpToToday: () => set({ selectedDate: new Date() }),
+
+  // Date range state (for hotel reservations)
+  selectedDateRange: (() => {
+    const monday = startOfWeek(new Date(), { weekStartsOn: 1 })
+    return {
+      from: monday,
+      to: addDays(monday, 6),
+    }
+  })(),
+  setSelectedDateRange: (range) => {
+    // Normalize dates to ensure they're always Date objects
+    if (!range) {
+      const monday = startOfWeek(new Date(), { weekStartsOn: 1 })
+      set({ 
+        selectedDateRange: {
+          from: monday,
+          to: addDays(monday, 6),
+        }
+      })
+      return
+    }
+    
+    const normalizedRange = {
+      from: range.from instanceof Date 
+        ? range.from 
+        : range.from 
+          ? new Date(range.from) 
+          : startOfWeek(new Date(), { weekStartsOn: 1 }),
+      to: range.to 
+        ? (range.to instanceof Date ? range.to : new Date(range.to))
+        : range.from 
+          ? addDays(range.from instanceof Date ? range.from : new Date(range.from), 6)
+          : addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 6),
+    }
+    
+    set({ selectedDateRange: normalizedRange })
+  },
 
   // Clinic state (kept for backward compatibility)
   selectedClinicId: null,

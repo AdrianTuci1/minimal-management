@@ -32,7 +32,7 @@ const DashboardHeader = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-auto p-0 text-2xl font-semibold gap-2 hover:bg-transparent">
-                  {selectedGroup ? `${selectedGroup.name}'s team` : "Team"}
+                  {selectedGroup ? `${selectedGroup.name}'s grup` : "Grup"}
                   <ChevronDown className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -42,7 +42,7 @@ const DashboardHeader = ({
                     key={group.id}
                     onClick={() => handleGroupSelect(group.id)}
                   >
-                    {group.name}'s team
+                    {group.name}'s grup
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

@@ -122,7 +122,7 @@ export const workspaceTypes = {
       { id: "setari", label: "Setari", icon: "Settings" },
     ],
     components: {
-      appointments: "Whiteboard", // Poate fi schimbat în viitor cu o componentă diferită pentru hotel
+      appointments: "HotelWhiteboard", // Whiteboard orizontal cu camere de hotel
     },
   },
 }

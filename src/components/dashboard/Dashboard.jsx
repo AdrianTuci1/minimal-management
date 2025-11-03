@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, Building2, CreditCard, Sparkles, TrendingUp, Folder, BarChart3, FileText, Image, Video, X, Users, Trash2, ChevronDown } from "lucide-react"
+import { Plus, Building2, CreditCard, Sparkles, TrendingUp, Folder, BarChart3, FileText, Image, Video, X, Users, Trash2, ChevronDown, Share2, FolderPlus } from "lucide-react"
 import useWorkspaceStore from "../../store/workspaceStore"
 import DashboardSidebar from "./DashboardSidebar"
 import DashboardHeader from "./DashboardHeader"
@@ -394,10 +394,10 @@ function Dashboard() {
     return [
       {
         id: "create-team",
-        title: `Creează echipă "${newGroupName || "..."}"`,
+        title: `Creează grup "${newGroupName || "..."}"`,
         description: newGroupName.trim() 
-          ? "Apasă Enter pentru a crea echipa" 
-          : "Introdu numele echipei",
+          ? "Apasă Enter pentru a crea grupul" 
+          : "Introdu numele grupului",
         group: "Acțiuni",
         onSubmit: (teamName) => {
           if (teamName && teamName.trim()) {
@@ -559,8 +559,11 @@ function Dashboard() {
       />
 
       <div className="flex-1 flex flex-col bg-background">
-        {/* Header with Actions - Hidden for drafts */}
-        {activeView !== "drafts" && !activeView.startsWith("group-drafts-") && (
+        {/* Header with Actions - Hidden for drafts, recents, and groups */}
+        {activeView !== "drafts" && 
+         !activeView.startsWith("group-drafts-") && 
+         activeView !== "recents" && 
+         activeView !== "groups" && (
           <DashboardHeader
             activeView={activeView}
             onViewChange={handleViewChange}
@@ -714,32 +717,6 @@ function Dashboard() {
                   </CardContent>
                 </Card>
               )}
-
-              {/* Drafts Section for All Projects View */}
-              {currentGroupDrafts.length > 0 && (
-                <div className="mb-6 mt-10">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      <h2 className="text-2xl font-semibold text-foreground">
-                        Drafts din {selectedGroup?.name || "grup"}
-                      </h2>
-                    </div>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => setIsCreateDraftOpen(true)}
-                      className="gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Creează draft
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {currentGroupDrafts.map((draft) => renderDraftCard(draft))}
-                  </div>
-                </div>
-              )}
             </>
           ) : activeView.startsWith("group-drafts-") ? (
             /* Group Drafts View */
@@ -842,47 +819,6 @@ function Dashboard() {
                   {currentGroupWorkspaces.map((workspace) => renderWorkspaceCard(workspace))}
                 </div>
               )}
-
-              {/* Drafts Section for Group */}
-              <div className="mb-6 mt-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <h2 className="text-2xl font-semibold text-foreground">
-                      Drafts din {selectedGroup?.name || "grup"}
-                    </h2>
-                  </div>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => setIsCreateDraftOpen(true)}
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Creează draft
-                  </Button>
-                </div>
-
-                {currentGroupDrafts.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {currentGroupDrafts.map((draft) => renderDraftCard(draft))}
-                  </div>
-                ) : (
-                  <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                      <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Nu ai drafts în acest grup</h3>
-                      <p className="text-sm text-muted-foreground mb-6 text-center max-w-md">
-                        Creează primul draft pentru acest grup pentru a salva notițe, imagini sau media.
-                      </p>
-                      <Button onClick={() => setIsCreateDraftOpen(true)} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Creează draft
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
             </>
           ) : null}
 
@@ -929,31 +865,68 @@ function Dashboard() {
 
           {/* Groups View */}
           {activeView === "groups" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {groups.map((group) => {
-                const groupWorkspaces = workspaces.filter(ws => ws.groupId === group.id)
-                return (
-                  <Card
-                    key={group.id}
-                    className="cursor-pointer hover:shadow-lg hover:border-primary/20 transition-all duration-200"
-                    onClick={() => handleViewChange(group.id)}
-                  >
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center">
-                          <Folder className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-lg">{group.name}</CardTitle>
-                          <CardDescription>
-                            {groupWorkspaces.length} {groupWorkspaces.length === 1 ? "spațiu" : "spații"} de lucru
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                )
-              })}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  <h2 className="text-2xl font-semibold text-foreground">Grupuri</h2>
+                </div>
+                <Button 
+                  onClick={() => setIsCreateTeamSpotlightOpen(true)} 
+                  className="gap-2"
+                >
+                  <FolderPlus className="h-4 w-4" />
+                  Creează grup
+                </Button>
+              </div>
+              {groups.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {groups.map((group) => {
+                    const groupWorkspaces = workspaces.filter(ws => ws.groupId === group.id)
+                    return (
+                      <Card
+                        key={group.id}
+                        className="cursor-pointer hover:shadow-lg hover:border-primary/20 transition-all duration-200"
+                        onClick={() => {
+                          selectGroup(group.id)
+                          handleViewChange("all-projects")
+                        }}
+                      >
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center">
+                              <Folder className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1">
+                              <CardTitle className="text-lg">{group.name}</CardTitle>
+                              <CardDescription>
+                                {groupWorkspaces.length} {groupWorkspaces.length === 1 ? "spațiu" : "spații"} de lucru
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    )
+                  })}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <Users className="h-16 w-16 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Nu ai grupuri</h3>
+                    <p className="text-sm text-muted-foreground mb-6 text-center max-w-md">
+                      Creează primul tău grup pentru a organiza spațiile de lucru.
+                    </p>
+                    <Button 
+                      onClick={() => setIsCreateTeamSpotlightOpen(true)} 
+                      className="gap-2"
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                      Creează grup
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 
@@ -1304,7 +1277,7 @@ function Dashboard() {
             item?.onSelect?.()
           }
         }}
-        placeholder="Introdu numele echipei"
+        placeholder="Introdu numele grupului"
       />
     </div>
   )

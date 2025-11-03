@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react"
 
 import Sidebar from "../Sidebar"
 import TopBar from "../TopBar"
-import Whiteboard from "../Whiteboard"
+import Whiteboard from "../whiteboards/clinic/Whiteboard"
+import HotelWhiteboard from "../whiteboards/hotel/HotelWhiteboard"
+import FitnessWhiteboard from "../whiteboards/fitness/FitnessWhiteboard"
 import SpotlightSearch from "../SpotlightSearch"
 import KpiOverview from "./KpiOverview"
 import TreatmentsView from "./TreatmentsView"
@@ -12,108 +14,7 @@ import AutomatizariView from "./AutomatizariView"
 import SettingsView from "./SettingsView"
 import useAppStore from "../../store/appStore"
 import useWorkspaceConfig from "../../hooks/useWorkspaceConfig"
-
-const initialDoctors = [
-  {
-    id: "dr-ionescu",
-    name: "Dr. Ana Ionescu",
-    specialty: "Ortodonție",
-    color: "#6366F1",
-  },
-  {
-    id: "dr-popescu",
-    name: "Dr. Mihai Popescu",
-    specialty: "Implantologie",
-    color: "#0EA5E9",
-  },
-  {
-    id: "dr-stan",
-    name: "Dr. Irina Stan",
-    specialty: "Estetică dentară",
-    color: "#22C55E",
-  },
-  {
-    id: "dr-dima",
-    name: "Dr. Andrei Dima",
-    specialty: "Chirurgie",
-    color: "#F97316",
-  },
-]
-
-const initialAppointments = [
-  {
-    id: "appt-1",
-    doctorId: "dr-ionescu",
-    patient: "Ioana Marinescu",
-    treatment: "Control aparat dentar",
-    start: 9 * 60,
-    duration: 30,
-    status: "confirmată",
-  },
-  {
-    id: "appt-2",
-    doctorId: "dr-ionescu",
-    patient: "Adrian Pavel",
-    treatment: "Strângere arcuri",
-    start: 10 * 60 + 30,
-    duration: 45,
-    status: "în curs",
-  },
-  {
-    id: "appt-3",
-    doctorId: "dr-popescu",
-    patient: "Maria Tudor",
-    treatment: "Consult implant",
-    start: 9 * 60 + 15,
-    duration: 90,
-    status: "confirmată",
-  },
-  {
-    id: "appt-4",
-    doctorId: "dr-popescu",
-    patient: "Dan Apostol",
-    treatment: "Control post-operator",
-    start: 11 * 60 + 30,
-    duration: 45,
-    status: "nouă",
-  },
-  {
-    id: "appt-5",
-    doctorId: "dr-stan",
-    patient: "Sorina Pătrașcu",
-    treatment: "Albire profesională",
-    start: 8 * 60 + 45,
-    duration: 60,
-    status: "confirmată",
-  },
-  {
-    id: "appt-6",
-    doctorId: "dr-stan",
-    patient: "Radu Georgescu",
-    treatment: "Fațete ceramice",
-    start: 10 * 60 + 15,
-    duration: 120,
-    status: "în curs",
-  },
-  {
-    id: "appt-7",
-    doctorId: "dr-dima",
-    patient: "Emil Ciobanu",
-    treatment: "Extracție molar",
-    start: 9 * 60 + 30,
-    duration: 45,
-    status: "confirmată",
-  },
-  {
-    id: "appt-8",
-    doctorId: "dr-dima",
-    patient: "Carmen Iacob",
-    treatment: "Chirurgie parodontală",
-    start: 11 * 60,
-    duration: 75,
-    status: "nouă",
-  },
-]
+import { getDemoDoctors, getDemoAppointments, getDemoClients } from "../../config/demoData"
 
 const initialOnlineUsers = [
   {
@@ -136,9 +37,134 @@ const initialOnlineUsers = [
   },
 ]
 
+// Funcție helper pentru a obține luni săptămâna curentă
+const getMondayOfCurrentWeek = () => {
+  const today = new Date()
+  const day = today.getDay()
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1) // Ajustare pentru luni
+  const monday = new Date(today)
+  monday.setDate(diff)
+  monday.setHours(0, 0, 0, 0)
+  return monday
+}
+
+// Funcție helper pentru a formata data ca string YYYY-MM-DD
+const formatDateString = (date) => {
+  return date.toISOString().split('T')[0]
+}
+
+// Funcție helper pentru a adăuga zile la o dată
+const addDays = (date, days) => {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
+
+const initialHotelReservations = (() => {
+  const monday = getMondayOfCurrentWeek()
+  
+  return [
+    {
+      id: "res-1",
+      roomId: "room-101",
+      guest: "Ion Popescu",
+      service: "Cazare Single",
+      startDate: formatDateString(addDays(monday, 0)), // Luni
+      durationDays: 2,
+      status: "confirmată",
+    },
+    {
+      id: "res-2",
+      roomId: "room-102",
+      guest: "Maria Ionescu",
+      service: "Cazare Double",
+      startDate: formatDateString(addDays(monday, 1)), // Marți
+      durationDays: 3,
+      status: "în curs",
+    },
+    {
+      id: "res-3",
+      roomId: "room-103",
+      guest: "Andrei Georgescu",
+      service: "Cazare Single",
+      startDate: formatDateString(addDays(monday, 2)), // Miercuri
+      durationDays: 1,
+      status: "confirmată",
+    },
+    {
+      id: "res-4",
+      roomId: "room-104",
+      guest: "Elena Stan",
+      service: "Cazare Double",
+      startDate: formatDateString(addDays(monday, 3)), // Joi
+      durationDays: 2,
+      status: "nouă",
+    },
+    {
+      id: "res-5",
+      roomId: "room-201",
+      guest: "Dan Pop",
+      service: "Suite Premium",
+      startDate: formatDateString(addDays(monday, 4)), // Vineri
+      durationDays: 4,
+      status: "confirmată",
+    },
+    {
+      id: "res-6",
+      roomId: "room-202",
+      guest: "Ana Dima",
+      service: "Cazare Double",
+      startDate: formatDateString(addDays(monday, 6)), // Duminică
+      durationDays: 2,
+      status: "confirmată",
+    },
+    {
+      id: "res-7",
+      roomId: "room-203",
+      guest: "Radu Georgescu",
+      service: "Cazare Single",
+      startDate: formatDateString(addDays(monday, 7)), // Luni săptămâna următoare
+      durationDays: 3,
+      status: "în curs",
+    },
+    {
+      id: "res-8",
+      roomId: "room-301",
+      guest: "Carmen Iacob",
+      service: "Suite Deluxe",
+      startDate: formatDateString(addDays(monday, 9)), // Miercuri săptămâna următoare
+      durationDays: 3,
+      status: "ocupată",
+    },
+    {
+      id: "res-9",
+      roomId: "room-101",
+      guest: "Stefan Popescu",
+      service: "Cazare Single",
+      startDate: formatDateString(addDays(monday, 5)), // Sâmbătă
+      durationDays: 2,
+      status: "confirmată",
+    },
+    {
+      id: "res-10",
+      roomId: "room-102",
+      guest: "Laura Pop",
+      service: "Cazare Double",
+      startDate: formatDateString(addDays(monday, 11)), // Vineri săptămâna următoare
+      durationDays: 2,
+      status: "nouă",
+    },
+  ]
+})()
+
 function WorkspaceView({ workspace }) {
+  const { getLabel, workspaceType, config } = useWorkspaceConfig()
+  const initialDoctors = useMemo(() => getDemoDoctors(workspaceType), [workspaceType])
+  const initialAppointments = useMemo(() => getDemoAppointments(workspaceType, initialDoctors), [workspaceType, initialDoctors])
+  const initialClients = useMemo(() => getDemoClients(workspaceType), [workspaceType])
+  
   const [appointments, setAppointments] = useState(initialAppointments)
-  const { getLabel } = useWorkspaceConfig()
+  const [reservations, setReservations] = useState(initialHotelReservations)
 
   const {
     activeMenu,
@@ -154,8 +180,13 @@ function WorkspaceView({ workspace }) {
     openDrawer,
   } = useAppStore()
 
-  const doctors = useMemo(() => initialDoctors, [])
+  const doctors = useMemo(() => initialDoctors, [initialDoctors])
   const onlineUsers = useMemo(() => initialOnlineUsers, [])
+
+  // Update appointments when workspace type changes
+  useEffect(() => {
+    setAppointments(initialAppointments)
+  }, [initialAppointments])
 
   // Sync appointments to store
   useEffect(() => {
@@ -203,6 +234,19 @@ function WorkspaceView({ workspace }) {
       ),
     )
     updateAppointment(appointmentId, nextValues)
+  }
+
+  const handleReservationChange = (reservationId, nextValues) => {
+    setReservations((current) =>
+      current.map((reservation) =>
+        reservation.id === reservationId
+          ? {
+              ...reservation,
+              ...nextValues,
+            }
+          : reservation,
+      ),
+    )
   }
 
   const handleOpenSpotlight = () => {
@@ -336,6 +380,26 @@ function WorkspaceView({ workspace }) {
         return <SettingsView />
       case "programari":
       default:
+        // Folosește HotelWhiteboard pentru workspace-uri de tip hotel
+        if (config.id === "hotel" || workspaceType === "hotel") {
+          return (
+            <HotelWhiteboard
+              reservations={reservations}
+              onReservationChange={handleReservationChange}
+            />
+          )
+        }
+        // Folosește FitnessWhiteboard pentru workspace-uri de tip fitness
+        if (config.id === "fitness" || workspaceType === "fitness") {
+          console.log("Rendering FitnessWhiteboard with clients:", initialClients)
+          return (
+            <FitnessWhiteboard
+              clients={initialClients}
+              appointments={appointments}
+              onAppointmentChange={handleAppointmentChange}
+            />
+          )
+        }
         return (
           <Whiteboard
             doctors={doctors}

@@ -34,6 +34,24 @@ const SettingsView = () => {
           </CardDescription>
         </CardHeader>
       </Card>
+
+      <Card className="bg-white/90 shadow-sm backdrop-blur">
+        <CardHeader>
+          <CardTitle>Smart Bill</CardTitle>
+          <CardDescription>
+            Configureaza integrarea cu serviciul Smart Bill pentru facturare electronica.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <Card className="bg-white/90 shadow-sm backdrop-blur">
+        <CardHeader>
+          <CardTitle>Pagina de programari</CardTitle>
+          <CardDescription>
+            Configureaza setarile pentru pagina de programari.
+          </CardDescription>
+        </CardHeader>
+      </Card>
     </div>
   )
 }

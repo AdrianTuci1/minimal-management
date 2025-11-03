@@ -24,7 +24,7 @@ const statusVariants = {
 }
 
 const DoctorsView = ({ doctors = [] }) => {
-  const { workspaceType, getLabel } = useWorkspaceConfig()
+  const { workspaceType, getLabel, config } = useWorkspaceConfig()
   const columns = getTableColumns("medici", workspaceType)
   const drawerFields = getDrawerInputs("medici", workspaceType)
   const { isDrawerOpen, drawerData, drawerViewId, drawerMode, openDrawer, closeDrawer } = useAppStore()
@@ -33,6 +33,11 @@ const DoctorsView = ({ doctors = [] }) => {
 
   const isCreateMode = drawerMode === "create"
   const displayData = isCreateMode ? formData : drawerData
+
+  // Get the first column ID (doctor/personal name column)
+  const nameColumnId = columns[0]?.id || "medic"
+  // Get the patients/clients column ID
+  const patientsColumnId = columns.find(col => col.id === "pacienti" || col.id === "clienti")?.id || "pacienti"
 
   useEffect(() => {
     if (isCreateMode && isDrawerOpen) {
@@ -101,7 +106,7 @@ const DoctorsView = ({ doctors = [] }) => {
                       key={column.id}
                       className={index < columns.length - 1 ? "border-r border-border/60" : ""}
                     >
-                      {column.id === "medic" ? (
+                      {column.id === nameColumnId ? (
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
                             <AvatarFallback className="text-sm font-semibold" style={{ backgroundColor: `${doctor.color}1a`, color: doctor.color }}>
@@ -126,7 +131,7 @@ const DoctorsView = ({ doctors = [] }) => {
                           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: doctor.color }} />
                           {doctor.status.charAt(0).toUpperCase() + doctor.status.slice(1)}
                         </span>
-                      ) : column.id === "pacienti" ? (
+                      ) : column.id === patientsColumnId ? (
                         <span className="text-sm font-semibold text-foreground">{column.accessor(doctor)}</span>
                       ) : (
                         <span className="text-sm text-muted-foreground">{column.accessor(doctor)}</span>

@@ -114,8 +114,12 @@ const TopBar = ({ onlineUsers = [], actions = [] }) => {
         <Separator className="bg-border/60" />
 
         {/* Second row: ActionBar for Search, Filter buttons, and Calendar */}
-        <ActionBar actions={actions} />
-        <Separator className="bg-border/60" />
+        {activeMenu !== "kpi" && (
+          <>
+            <ActionBar actions={actions} />
+            <Separator className="bg-border/60" />
+          </>
+        )}
       </header>
       <ShareSpotlight />
     </div>

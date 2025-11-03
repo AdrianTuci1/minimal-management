@@ -109,17 +109,21 @@ const WorkspaceCard = ({ workspace, onSelect }) => {
   const showLogo = workspace.logo && !logoError
   const showIcon = !workspace.logo || logoError
   
+  const handleCardClick = () => {
+    onSelect?.(workspace.id)
+  }
+
   return (
     <Card
       className="cursor-pointer hover:shadow-lg hover:border-primary/20 transition-all duration-200 group overflow-hidden"
-      onClick={() => onSelect?.(workspace.id)}
+      onClick={handleCardClick}
     >
       {/* Preview Thumbnail */}
       <div className="relative h-32 bg-muted/50 overflow-hidden">
-        <div className={`absolute inset-0 ${previewColors[previewIndex]} opacity-20`} />
-        <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+        <div className={`absolute inset-0 ${previewColors[previewIndex]} opacity-20 pointer-events-none`} />
+        <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
         {/* Logo and Icon */}
-        <div className="absolute inset-0 flex items-center justify-center gap-3">
+        <div className="absolute inset-0 flex items-center justify-center gap-3 pointer-events-none">
           {showLogo && (
             <div className="relative">
               <div className="bg-background/90 backdrop-blur-sm rounded-lg p-2 shadow-lg border border-border/50">
