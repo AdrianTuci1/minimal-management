@@ -36,6 +36,8 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
   const boardRef = useRef(null)
   const [transform, setTransform] = useState({ scale: 1, translate: { x: 24, y: 24 } })
   const [dragState, setDragState] = useState(null)
+  const isMiddleButtonRef = useRef(false)
+  const [isMiddleButton, setIsMiddleButton] = useState(false)
   const totalSlots = useMemo(() => (DAY_END - DAY_START) / SLOT_INTERVAL, [])
   const boardHeight = totalSlots * SLOT_HEIGHT
   const draggingAppointmentId = dragState?.type === "appointment" ? dragState.id : null
@@ -73,12 +75,60 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
       event.preventDefault()
     }
 
+    const handleMouseDown = (event) => {
+      // Prevenim selectarea când folosim scroll wheel click
+      if (event.button === 1) {
+        isMiddleButtonRef.current = true
+        setIsMiddleButton(true)
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    const handleMouseUp = (event) => {
+      // Prevenim selectarea când se termină scroll wheel click
+      if (event.button === 1) {
+        event.preventDefault()
+        event.stopPropagation()
+        // Resetăm flag-ul după un mic delay pentru a preveni click-ul care urmează
+        setTimeout(() => {
+          isMiddleButtonRef.current = false
+          setIsMiddleButton(false)
+        }, 100)
+      }
+    }
+
+    const handleClick = (event) => {
+      // Prevenim click-ul stâng care poate fi declanșat de scroll wheel click
+      if (isMiddleButtonRef.current || isMiddleButton || (dragState && dragState.pointerId !== null)) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    const handleSelectStart = (event) => {
+      // Prevenim selectarea textului când suntem în drag cu scroll wheel
+      if (isMiddleButtonRef.current || isMiddleButton || (dragState && dragState.pointerId !== null)) {
+        event.preventDefault()
+        event.stopPropagation()
+        return false
+      }
+    }
+
     element.addEventListener("contextmenu", handleContextMenu)
+    element.addEventListener("mousedown", handleMouseDown)
+    element.addEventListener("mouseup", handleMouseUp)
+    element.addEventListener("click", handleClick)
+    document.addEventListener("selectstart", handleSelectStart)
 
     return () => {
       element.removeEventListener("contextmenu", handleContextMenu)
+      element.removeEventListener("mousedown", handleMouseDown)
+      element.removeEventListener("mouseup", handleMouseUp)
+      element.removeEventListener("click", handleClick)
+      document.removeEventListener("selectstart", handleSelectStart)
     }
-  }, [])
+  }, [dragState, isMiddleButton])
 
   const toBoardCoords = (clientX, clientY) => {
     const element = boardRef.current
@@ -92,6 +142,29 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
   const handlePointerDown = (event) => {
     const element = boardRef.current
     if (!element) return
+
+    // Scroll wheel click (button === 1) = doar pan (nu permite drag & drop pentru programări)
+    if (event.button === 1) {
+      // Setăm flag-ul pentru a preveni selectarea
+      isMiddleButtonRef.current = true
+      setIsMiddleButton(true)
+
+      element.setPointerCapture(event.pointerId)
+      event.preventDefault()
+      event.stopPropagation()
+
+      // Doar pan, nu permitem drag & drop pentru programări
+      setDragState({
+        type: "pan",
+        pointerId: event.pointerId,
+        origin: { x: event.clientX, y: event.clientY },
+        start: { ...transform.translate },
+      })
+      return
+    }
+
+    // Click stâng (button === 0) = drag & drop pentru programări sau pan
+    if (event.button !== 0) return
 
     const appointmentElement = event.target.closest("[data-appointment-id]")
 
@@ -183,6 +256,11 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
       element.releasePointerCapture(event.pointerId)
     }
     setDragState(null)
+    // Resetăm flag-ul după un mic delay pentru a preveni click-ul care urmează
+    setTimeout(() => {
+      isMiddleButtonRef.current = false
+      setIsMiddleButton(false)
+    }, 100)
   }
 
   const handleWheel = (event) => {
@@ -270,7 +348,16 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
           <ScrollArea className="h-full w-full" type="always">
             <div
               ref={boardRef}
-              className="relative h-full touch-none"
+              className={cn(
+                "relative h-full touch-none",
+                (dragState || isMiddleButton) && "select-none"
+              )}
+              style={{
+                userSelect: (dragState || isMiddleButton) ? "none" : "auto",
+                WebkitUserSelect: (dragState || isMiddleButton) ? "none" : "auto",
+                MozUserSelect: (dragState || isMiddleButton) ? "none" : "auto",
+                msUserSelect: (dragState || isMiddleButton) ? "none" : "auto",
+              }}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={endDrag}
@@ -416,7 +503,7 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
                                 <TooltipContent side="right" className="rounded-md border-border/70 bg-white/95 shadow-lg">
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <GripVertical className="h-3.5 w-3.5" />
-                                    Glisează pentru a reprograma (pas de 15 minute)
+                                    apasa si gliseaza pentru a reprograma
                                   </div>
                                 </TooltipContent>
                               </Tooltip>

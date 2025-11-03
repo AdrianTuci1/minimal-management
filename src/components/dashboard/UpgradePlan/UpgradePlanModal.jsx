@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DropdownMenu,
@@ -10,28 +11,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ChevronDown, ChevronRight, Plus, User } from "lucide-react"
+import { ChevronDown, ChevronRight, Plus, User, CreditCard, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
-import useWorkspaceStore from "../../store/workspaceStore"
+import useWorkspaceStore from "../../../store/workspaceStore"
 
 const SEAT_TYPES = {
   full: {
     name: "Full",
     color: "bg-blue-500",
     includes: "Figma Design, Figma Sites (Beta), Figma Make, Dev Mode, FigJam, and Figma Slides",
-    monthlyPrice: 16,
+    monthlyPrice: 20,
   },
   collab: {
     name: "Collab",
     color: "bg-purple-500",
     includes: "FigJam and Figma Slides",
-    monthlyPrice: 3,
+    monthlyPrice: 5,
   },
   dev: {
     name: "Dev",
     color: "bg-green-500",
     includes: "Dev Mode",
-    monthlyPrice: 12,
+    monthlyPrice: 15,
   },
 }
 
@@ -41,12 +42,40 @@ const CURRENCIES = [
   { code: "GBP", symbol: "£" },
 ]
 
+const COUNTRIES = [
+  "Romania",
+  "United States",
+  "United Kingdom",
+  "Germany",
+  "France",
+  "Spain",
+  "Italy",
+]
+
 const UpgradePlanModal = ({ open, onClose, onNext }) => {
   const { currentUser } = useWorkspaceStore()
-  const [step, setStep] = useState("upgrade-type") // "upgrade-type" | "choose-seats"
+  const [step, setStep] = useState("upgrade-type") // "upgrade-type" | "choose-seats" | "payment"
   const [selectedOption, setSelectedOption] = useState(null) // "just-me" or "team"
-  const [billingCycle, setBillingCycle] = useState("annual") // "annual" | "monthly"
+  const [billingCycle, setBillingCycle] = useState("monthly") // "annual" | "monthly"
   const [currency, setCurrency] = useState("EUR")
+  const [paymentMethod, setPaymentMethod] = useState("card") // "card" | "sepa"
+  
+  // Payment form state
+  const [paymentData, setPaymentData] = useState({
+    cardNumber: "",
+    expirationDate: "",
+    securityCode: "",
+    nameOnCard: "",
+    billingAddress: "",
+    aptUnit: "",
+    country: "Romania",
+    city: "",
+    province: "",
+    postalCode: "",
+    vatId: "",
+    differentShipping: false,
+    differentLegalName: false,
+  })
   
   // Mock team members - in real app, this would come from store
   const [teamMembers, setTeamMembers] = useState([
@@ -112,8 +141,17 @@ const UpgradePlanModal = ({ open, onClose, onNext }) => {
         }
       }
     } else if (step === "choose-seats") {
+      setStep("payment")
+    } else if (step === "payment") {
       if (onNext) {
-        onNext({ option: selectedOption, teamMembers, billingCycle, currency })
+        onNext({ 
+          option: selectedOption, 
+          teamMembers, 
+          billingCycle, 
+          currency,
+          paymentData,
+          paymentMethod,
+        })
       }
     }
   }
@@ -121,6 +159,8 @@ const UpgradePlanModal = ({ open, onClose, onNext }) => {
   const handleBack = () => {
     if (step === "choose-seats") {
       setStep("upgrade-type")
+    } else if (step === "payment") {
+      setStep("choose-seats")
     }
   }
 
@@ -130,6 +170,13 @@ const UpgradePlanModal = ({ open, onClose, onNext }) => {
         member.id === memberId ? { ...member, seatType: newSeatType } : member
       )
     )
+  }
+
+  const handlePaymentDataChange = (field, value) => {
+    setPaymentData(prev => ({
+      ...prev,
+      [field]: value,
+    }))
   }
 
   const calculateTotal = () => {
@@ -172,38 +219,41 @@ const UpgradePlanModal = ({ open, onClose, onNext }) => {
 
   const currentStepIndex = breadcrumbs.findIndex(b => b.step === step)
 
+  const renderHeader = () => (
+    <div className="flex items-center justify-between p-6 border-b border-border">
+      <Button
+        variant="ghost"
+        onClick={step === "upgrade-type" ? handleClose : handleBack}
+        className="text-muted-foreground hover:text-foreground"
+      >
+        Cancel
+      </Button>
+      
+      {/* Breadcrumbs */}
+      <div className="flex items-center gap-2 text-sm">
+        {breadcrumbs.map((crumb, index) => (
+          <div key={crumb.step} className="flex items-center gap-2">
+            {index > 0 && <span className="text-muted-foreground">&gt;</span>}
+            <span
+              className={cn(
+                index === currentStepIndex
+                  ? "text-foreground font-medium"
+                  : "text-muted-foreground"
+              )}
+            >
+              {crumb.label}
+            </span>
+          </div>
+        ))}
+      </div>
+      
+      <div className="w-16" /> {/* Spacer for centering */}
+    </div>
+  )
+
   const renderUpgradeTypeStep = () => (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-border">
-        <Button
-          variant="ghost"
-          onClick={handleClose}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          Cancel
-        </Button>
-        
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-sm">
-          {breadcrumbs.map((crumb, index) => (
-            <div key={crumb.step} className="flex items-center gap-2">
-              {index > 0 && <span className="text-muted-foreground">&gt;</span>}
-              <span
-                className={cn(
-                  index === currentStepIndex
-                    ? "text-foreground font-medium"
-                    : "text-muted-foreground"
-                )}
-              >
-                {crumb.label}
-              </span>
-            </div>
-          ))}
-        </div>
-        
-        <div className="w-16" /> {/* Spacer for centering */}
-      </div>
+      {renderHeader()}
 
       {/* Content */}
       <div className="flex-1 flex items-center justify-center p-8">
@@ -224,19 +274,11 @@ const UpgradePlanModal = ({ open, onClose, onNext }) => {
         >
           <CardContent className="p-8">
             <div className="flex flex-col items-center text-center space-y-6">
-              <div className={cn(
-                "w-20 h-20 rounded-lg border-2 flex items-center justify-center relative",
-                selectedOption === "just-me" 
-                  ? "border-primary bg-primary/10" 
-                  : "border-border bg-muted/50"
-              )}>
-                <div className={cn(
-                  "w-8 h-8 rounded-sm border-2 rotate-45",
-                  selectedOption === "just-me" 
-                    ? "border-primary bg-primary/20" 
-                    : "border-muted-foreground bg-muted"
-                )} />
-              </div>
+              <img 
+                src="/me.svg" 
+                alt="Doar eu" 
+                className="w-32 h-32 object-contain"
+              />
               <div className="space-y-2">
                 <h3 className="text-xl font-semibold text-foreground">Doar eu</h3>
                 <p className="text-sm text-muted-foreground">
@@ -258,25 +300,11 @@ const UpgradePlanModal = ({ open, onClose, onNext }) => {
         >
           <CardContent className="p-8">
             <div className="flex flex-col items-center text-center space-y-6">
-              <div className={cn(
-                "w-20 h-20 rounded-lg border-2 flex items-center justify-center relative overflow-hidden",
-                selectedOption === "team" 
-                  ? "border-primary bg-primary/10" 
-                  : "border-border bg-muted/50"
-              )}>
-                <div className="relative w-full h-full flex items-center justify-center">
-                  <div className="absolute top-2 right-2 w-4 h-4 rounded-sm border border-red-500 bg-red-500/30 rotate-45" />
-                  <div className="absolute top-4 left-3 w-4 h-4 rounded-sm border border-green-500 bg-green-500/30 rotate-45" />
-                  <div className="absolute bottom-3 right-3 w-4 h-4 rounded-sm border border-yellow-500 bg-yellow-500/30 rotate-45" />
-                  <div className="absolute bottom-2 left-2 w-4 h-4 rounded-sm border border-purple-500 bg-purple-500/30 rotate-45" />
-                  <div className={cn(
-                    "w-5 h-5 rounded-sm border-2 rotate-45",
-                    selectedOption === "team" 
-                      ? "border-primary bg-primary/30" 
-                      : "border-muted-foreground bg-muted"
-                  )} />
-                </div>
-              </div>
+              <img 
+                src="/team.svg" 
+                alt="Eu și echipa mea" 
+                className="w-64 h-32 object-contain"
+              />
               <div className="space-y-2">
                 <h3 className="text-xl font-semibold text-foreground">Eu și echipa mea</h3>
                 <p className="text-sm text-muted-foreground">
@@ -311,39 +339,10 @@ const UpgradePlanModal = ({ open, onClose, onNext }) => {
 
     return (
       <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <Button
-            variant="ghost"
-            onClick={handleBack}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            Cancel
-          </Button>
-          
-          {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-sm">
-            {breadcrumbs.map((crumb, index) => (
-              <div key={crumb.step} className="flex items-center gap-2">
-                {index > 0 && <span className="text-muted-foreground">&gt;</span>}
-                <span
-                  className={cn(
-                    index === currentStepIndex
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  {crumb.label}
-                </span>
-              </div>
-            ))}
-          </div>
-          
-          <div className="w-16" /> {/* Spacer for centering */}
-        </div>
+        {renderHeader()}
 
         {/* Content */}
-        <div className="flex gap-8 flex-1 overflow-hidden p-8">
+        <div className="flex gap-8 flex-1 overflow-hidden p-8 max-w-7xl mx-auto w-full">
           {/* Main Content */}
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-4xl">
@@ -574,12 +573,360 @@ const UpgradePlanModal = ({ open, onClose, onNext }) => {
     )
   }
 
+  const renderPaymentStep = () => {
+    const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol || "€"
+    const priceMultiplier = billingCycle === "annual" ? 12 : 1
+    const periodLabel = billingCycle === "annual" ? "yr" : "mo"
+
+    return (
+      <div className="flex flex-col h-full">
+        {renderHeader()}
+
+        {/* Content */}
+        <div className="flex gap-8 flex-1 overflow-hidden p-8 max-w-7xl mx-auto w-full">
+          {/* Main Content */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-4xl">
+              <h2 className="text-2xl font-semibold text-foreground mb-8">
+                Enter your payment details.
+              </h2>
+
+              {/* Payment Details Section */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Payment details</h3>
+                
+                {/* Payment Method Selection */}
+                <div className="flex gap-4 mb-6">
+                  <Card
+                    className={cn(
+                      "cursor-pointer transition-all flex-1",
+                      paymentMethod === "card"
+                        ? "border-primary border-2 bg-primary/5"
+                        : "border-border"
+                    )}
+                    onClick={() => setPaymentMethod("card")}
+                  >
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <CreditCard className="h-5 w-5" />
+                      <span className="font-medium">Card</span>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card
+                    className={cn(
+                      "cursor-pointer transition-all flex-1",
+                      paymentMethod === "sepa"
+                        ? "border-primary border-2 bg-primary/5"
+                        : "border-border"
+                    )}
+                    onClick={() => setPaymentMethod("sepa")}
+                  >
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="text-xs font-semibold">SEPA</div>
+                      <span className="font-medium">SEPA Debit</span>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {paymentMethod === "card" && (
+                  <>
+                    {/* Card Number */}
+                    <div className="mb-4">
+                      <label className="text-sm font-medium mb-2 block">Card number</label>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          placeholder="1234 5678 9012 3456"
+                          value={paymentData.cardNumber}
+                          onChange={(e) => handlePaymentDataChange("cardNumber", e.target.value)}
+                          className="pr-20"
+                        />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
+                          <div className="text-xs font-semibold text-muted-foreground">VISA</div>
+                          <div className="text-xs font-semibold text-muted-foreground">MC</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expiration Date and Security Code */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Expiration date</label>
+                        <Input
+                          type="text"
+                          placeholder="MM/YY"
+                          value={paymentData.expirationDate}
+                          onChange={(e) => handlePaymentDataChange("expirationDate", e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Security code</label>
+                        <div className="relative">
+                          <Input
+                            type="text"
+                            placeholder="123"
+                            value={paymentData.securityCode}
+                            onChange={(e) => handlePaymentDataChange("securityCode", e.target.value)}
+                            className="pr-10"
+                          />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <CreditCard className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Name on Card */}
+                    <div className="mb-6">
+                      <label className="text-sm font-medium mb-2 block">Name on payment method</label>
+                      <Input
+                        type="text"
+                        placeholder="John Doe"
+                        value={paymentData.nameOnCard}
+                        onChange={(e) => handlePaymentDataChange("nameOnCard", e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Billing Address Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Billing address</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Billing address</label>
+                    <Input
+                      type="text"
+                      placeholder="123 Main Street"
+                      value={paymentData.billingAddress}
+                      onChange={(e) => handlePaymentDataChange("billingAddress", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Apt, unit, suite, etc. (optional)
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="Apt 4B"
+                      value={paymentData.aptUnit}
+                      onChange={(e) => handlePaymentDataChange("aptUnit", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Country</label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                          {paymentData.country}
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {COUNTRIES.map((country) => (
+                          <DropdownMenuItem
+                            key={country}
+                            onClick={() => handlePaymentDataChange("country", country)}
+                          >
+                            {country}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">City / town / village</label>
+                    <Input
+                      type="text"
+                      placeholder="Bucharest"
+                      value={paymentData.city}
+                      onChange={(e) => handlePaymentDataChange("city", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Province / region</label>
+                    <Input
+                      type="text"
+                      placeholder="Bucharest"
+                      value={paymentData.province}
+                      onChange={(e) => handlePaymentDataChange("province", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Postal code</label>
+                    <Input
+                      type="text"
+                      placeholder="12345"
+                      value={paymentData.postalCode}
+                      onChange={(e) => handlePaymentDataChange("postalCode", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                      VAT/GST ID (optional)
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="RO12345678"
+                      value={paymentData.vatId}
+                      onChange={(e) => handlePaymentDataChange("vatId", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Checkboxes */}
+              <div className="space-y-3 mb-8">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={paymentData.differentShipping}
+                    onChange={(e) => handlePaymentDataChange("differentShipping", e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">I have a different shipping address</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={paymentData.differentLegalName}
+                    onChange={(e) => handlePaymentDataChange("differentLegalName", e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">I have a different legal company name</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="w-80 flex-shrink-0">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Your Professional plan</h3>
+                
+                {/* Currency */}
+                <div className="mb-4">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        {currencySymbol} {currency}
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      {CURRENCIES.map((curr) => (
+                        <DropdownMenuItem
+                          key={curr.code}
+                          onClick={() => setCurrency(curr.code)}
+                        >
+                          {curr.symbol} {curr.code}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Billing Cycle */}
+                <div className="mb-6 space-y-3">
+                  <div className="text-sm font-medium mb-2">Billing Cycle</div>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="billing-payment"
+                        checked={billingCycle === "annual"}
+                        onChange={() => setBillingCycle("annual")}
+                        className="w-4 h-4"
+                      />
+                      <span className="flex-1">Annual</span>
+                      <Badge variant="secondary" className="bg-green-500/20 text-green-600">
+                        Save up to 20%
+                      </Badge>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="billing-payment"
+                        checked={billingCycle === "monthly"}
+                        onChange={() => setBillingCycle("monthly")}
+                        className="w-4 h-4"
+                      />
+                      <span>Monthly</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Cost Breakdown */}
+                <div className="space-y-3 mb-4">
+                  {totals.fullCount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span>{totals.fullCount} Full seat</span>
+                      <span>
+                        × {currencySymbol}{SEAT_TYPES.full.monthlyPrice}/mo × {billingCycle === "annual" ? "12 months" : "1 month"} = {currencySymbol}{totals.fullPrice * priceMultiplier}/{periodLabel}
+                      </span>
+                    </div>
+                  )}
+                  {totals.devCount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span>{totals.devCount} Dev seats</span>
+                      <span>
+                        × {currencySymbol}{SEAT_TYPES.dev.monthlyPrice}/mo × {billingCycle === "annual" ? "12 months" : "1 month"} = {currencySymbol}{totals.devPrice * priceMultiplier}/{periodLabel}
+                      </span>
+                    </div>
+                  )}
+                  {totals.collabCount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span>{totals.collabCount} Collab seat</span>
+                      <span>
+                        × {currencySymbol}{SEAT_TYPES.collab.monthlyPrice}/mo × {billingCycle === "annual" ? "12 months" : "1 month"} = {currencySymbol}{totals.collabPrice * priceMultiplier}/{periodLabel}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t pt-4 mb-4">
+                  <div className="flex justify-between font-semibold mb-2">
+                    <span>Subtotal</span>
+                    <span>{currencySymbol}{totals.monthlyTotal * priceMultiplier}/{periodLabel}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    See your total (including taxes) in Review
+                  </p>
+                </div>
+
+                <Button
+                  variant="default"
+                  className="w-full"
+                  onClick={handleNext}
+                >
+                  Next: Review
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-xs">
       <div className="absolute inset-0" onClick={handleClose} />
       
       <div className="relative z-10 w-full h-full bg-background flex flex-col">
-        {step === "upgrade-type" ? renderUpgradeTypeStep() : renderChooseSeatsStep()}
+        {step === "upgrade-type" && renderUpgradeTypeStep()}
+        {step === "choose-seats" && renderChooseSeatsStep()}
+        {step === "payment" && renderPaymentStep()}
       </div>
     </div>
   )
