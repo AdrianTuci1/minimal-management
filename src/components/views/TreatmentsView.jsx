@@ -5,6 +5,7 @@ import { Drawer, DrawerContent, DrawerField } from "@/components/ui/drawer"
 import { getTableColumns } from "@/config/tableColumns"
 import { getDrawerInputs } from "@/config/drawerInputs.jsx"
 import useAppStore from "@/store/appStore"
+import useWorkspaceConfig from "@/hooks/useWorkspaceConfig"
 import { cn } from "@/lib/utils"
 import { FileText } from "lucide-react"
 
@@ -58,8 +59,9 @@ const statusTone = {
 }
 
 const TreatmentsView = () => {
-  const columns = getTableColumns("tratamente")
-  const drawerFields = getDrawerInputs("tratamente")
+  const { workspaceType, getLabel } = useWorkspaceConfig()
+  const columns = getTableColumns("tratamente", workspaceType)
+  const drawerFields = getDrawerInputs("tratamente", workspaceType)
   const { isDrawerOpen, drawerData, drawerViewId, drawerMode, openDrawer, closeDrawer } = useAppStore()
   
   const [formData, setFormData] = useState({})
@@ -139,7 +141,7 @@ const TreatmentsView = () => {
       <Drawer
         open={isDrawerOpen && drawerViewId === "tratamente"}
         onOpenChange={closeDrawer}
-        title={isCreateMode ? "Adaugă tratament nou" : "Detalii tratament"}
+        title={isCreateMode ? `${getLabel("addTreatment")}` : `Detalii ${getLabel("treatment").toLowerCase()}`}
         tabs={
           !isCreateMode
             ? [

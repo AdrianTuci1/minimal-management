@@ -7,13 +7,25 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
-const SpotlightSearch = ({ open, items = [], onClose, onSelect }) => {
-  const [query, setQuery] = useState("")
+const SpotlightSearch = ({ open, items = [], onClose, onSelect, query: controlledQuery, onQueryChange, placeholder = "Tastează pentru a căuta clinici, module sau acțiuni" }) => {
+  const [internalQuery, setInternalQuery] = useState("")
   const inputRef = useRef(null)
+  const isControlled = controlledQuery !== undefined
+  const currentQuery = isControlled ? controlledQuery : internalQuery
+
+  const setQuery = (value) => {
+    if (isControlled) {
+      onQueryChange?.(value)
+    } else {
+      setInternalQuery(value)
+    }
+  }
 
   useEffect(() => {
     if (open) {
-      setQuery("")
+      if (!isControlled) {
+        setInternalQuery("")
+      }
       const timeout = setTimeout(() => {
         inputRef.current?.focus()
       }, 30)
@@ -27,7 +39,7 @@ const SpotlightSearch = ({ open, items = [], onClose, onSelect }) => {
     }
 
     document.body.classList.remove("overflow-hidden")
-  }, [open])
+  }, [open, isControlled])
 
   useEffect(() => {
     if (!open) {
@@ -38,6 +50,11 @@ const SpotlightSearch = ({ open, items = [], onClose, onSelect }) => {
       if (event.key === "Escape") {
         onClose?.()
       }
+      // Handle Enter key for creating team
+      if (event.key === "Enter" && currentQuery.trim() && items.length === 1 && items[0].onSubmit) {
+        event.preventDefault()
+        items[0].onSubmit(currentQuery)
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown)
@@ -45,20 +62,20 @@ const SpotlightSearch = ({ open, items = [], onClose, onSelect }) => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [open, onClose])
+  }, [open, onClose, currentQuery, items])
 
   const filteredItems = useMemo(() => {
-    if (!query) {
+    if (!currentQuery) {
       return items
     }
 
-    const lowerQuery = query.trim().toLowerCase()
+    const lowerQuery = currentQuery.trim().toLowerCase()
 
     return items.filter((item) => {
       const haystack = `${item.title} ${item.description ?? ""}`.toLowerCase()
       return haystack.includes(lowerQuery)
     })
-  }, [items, query])
+  }, [items, currentQuery])
 
   const groupedItems = useMemo(() => {
     const groups = new Map()
@@ -89,9 +106,9 @@ const SpotlightSearch = ({ open, items = [], onClose, onSelect }) => {
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
               ref={inputRef}
-              value={query}
+              value={currentQuery}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Tastează pentru a căuta clinici, module sau acțiuni"
+              placeholder={placeholder}
               className="h-10 border-0 bg-transparent px-0 text-sm focus-visible:ring-0"
             />
             <Button variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={onClose}>
@@ -144,7 +161,7 @@ const SpotlightSearch = ({ open, items = [], onClose, onSelect }) => {
             ) : (
               <div className="flex flex-col items-center justify-center gap-2 px-8 py-12 text-center text-sm text-muted-foreground">
                 <Sparkles className="h-6 w-6 text-primary" />
-                Nu am găsit rezultate pentru „{query}”. Încearcă alt termen.
+                Nu am găsit rezultate pentru „{currentQuery}". Încearcă alt termen.
               </div>
             )}
           </ScrollArea>

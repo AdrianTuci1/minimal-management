@@ -1,8 +1,8 @@
-import React from "react"
+import { getLabel } from "./workspaceConfig"
 
 // Centralized drawer field definitions
 export const drawerInputs = {
-  pacienti: [
+  pacienti: (workspaceType = "clinic") => [
     {
       id: "name",
       label: "Nume",
@@ -51,7 +51,7 @@ export const drawerInputs = {
       editable: true,
     },
   ],
-  medici: [
+  medici: (workspaceType = "clinic") => [
     {
       id: "name",
       label: "Nume complet",
@@ -61,7 +61,7 @@ export const drawerInputs = {
     },
     {
       id: "specialty",
-      label: "Specializare",
+      label: getLabel(workspaceType, "specialty"),
       type: "text",
       accessor: (row) => row?.specialty || "",
       editable: true,
@@ -75,14 +75,14 @@ export const drawerInputs = {
     },
     {
       id: "patientsToday",
-      label: "Pacienți azi",
+      label: getLabel(workspaceType, "patientsToday"),
       type: "text",
       accessor: (row) => row?.patientsToday || "",
       editable: false,
     },
     {
       id: "activeTreatments",
-      label: "Tratamente active",
+      label: getLabel(workspaceType, "activeTreatments"),
       type: "text",
       accessor: (row) => row?.activeTreatments || "",
       editable: false,
@@ -96,13 +96,13 @@ export const drawerInputs = {
     },
     {
       id: "cabinet",
-      label: "Cabinet",
+      label: getLabel(workspaceType, "cabinet"),
       type: "text",
       accessor: (row) => row?.cabinet || "",
       editable: true,
     },
   ],
-  tratamente: [
+  tratamente: (workspaceType = "clinic") => [
     {
       id: "code",
       label: "Cod",
@@ -126,7 +126,7 @@ export const drawerInputs = {
     },
     {
       id: "doctor",
-      label: "Medic recomandat",
+      label: getLabel(workspaceType, "recommendedDoctor"),
       type: "text",
       accessor: (row) => row?.doctor || "",
       editable: true,
@@ -149,7 +149,16 @@ export const drawerInputs = {
 }
 
 // Get drawer inputs for a specific view
-export const getDrawerInputs = (viewId) => {
-  return drawerInputs[viewId] || []
+export const getDrawerInputs = (viewId, workspaceType = "clinic") => {
+  const inputDef = drawerInputs[viewId]
+  if (!inputDef) return []
+  
+  // Dacă este o funcție, o apelăm cu workspaceType
+  if (typeof inputDef === "function") {
+    return inputDef(workspaceType)
+  }
+  
+  // Altfel returnează direct
+  return inputDef
 }
 

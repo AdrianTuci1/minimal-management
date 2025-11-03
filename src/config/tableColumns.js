@@ -1,9 +1,11 @@
 // Centralized table column definitions
+import { getLabel } from "./workspaceConfig"
+
 export const tableColumns = {
-  pacienti: [
+  pacienti: (workspaceType = "clinic") => [
     {
       id: "pacient",
-      label: "Pacient",
+      label: getLabel(workspaceType, "patient"),
       accessor: (row) => row.name,
     },
     {
@@ -13,7 +15,7 @@ export const tableColumns = {
     },
     {
       id: "programare",
-      label: "Programare următoare",
+      label: getLabel(workspaceType, "nextAppointment"),
       accessor: (row) => row.upcoming,
     },
     {
@@ -22,15 +24,15 @@ export const tableColumns = {
       accessor: (row) => row.dePlata,
     },
   ],
-  medici: [
+  medici: (workspaceType = "clinic") => [
     {
       id: "medic",
-      label: "Medic",
+      label: getLabel(workspaceType, "doctor"),
       accessor: (row) => row.name,
     },
     {
       id: "specializare",
-      label: "Specializare",
+      label: getLabel(workspaceType, "specialty"),
       accessor: (row) => row.specialty,
     },
     {
@@ -40,12 +42,12 @@ export const tableColumns = {
     },
     {
       id: "pacienti",
-      label: "Pacienți azi",
+      label: getLabel(workspaceType, "patientsToday"),
       accessor: (row) => row.patientsToday,
     },
     {
       id: "tratamente",
-      label: "Tratamente active",
+      label: getLabel(workspaceType, "activeTreatments"),
       accessor: (row) => row.activeTreatments,
     },
     {
@@ -55,11 +57,11 @@ export const tableColumns = {
     },
     {
       id: "cabinet",
-      label: "Cabinet",
+      label: getLabel(workspaceType, "cabinet"),
       accessor: (row) => row.cabinet,
     },
   ],
-  tratamente: [
+  tratamente: (workspaceType = "clinic") => [
     {
       id: "cod",
       label: "Cod",
@@ -78,7 +80,7 @@ export const tableColumns = {
     },
     {
       id: "medic",
-      label: "Medic recomandat",
+      label: getLabel(workspaceType, "recommendedDoctor"),
       accessor: (row) => row.doctor,
     },
     {
@@ -92,20 +94,20 @@ export const tableColumns = {
       accessor: (row) => row.status,
     },
   ],
-  programari: [
+  programari: (workspaceType = "clinic") => [
     {
       id: "pacient",
-      label: "Pacient",
+      label: getLabel(workspaceType, "patient"),
       accessor: (row) => row.patient,
     },
     {
       id: "medic",
-      label: "Medic",
+      label: getLabel(workspaceType, "doctor"),
       accessor: (row) => row.doctorId,
     },
     {
       id: "tratament",
-      label: "Tratament",
+      label: getLabel(workspaceType, "treatment"),
       accessor: (row) => row.treatment,
     },
     {
@@ -128,7 +130,7 @@ export const tableColumns = {
       accessor: (row) => row.status,
     },
   ],
-  automatizari: [
+  automatizari: () => [
     {
       id: "nume",
       label: "Nume",
@@ -153,15 +155,25 @@ export const tableColumns = {
 }
 
 // Get filter columns for a specific menu
-export const getFilterColumns = (menuId) => {
-  return tableColumns[menuId]?.map((col) => ({
+export const getFilterColumns = (menuId, workspaceType = "clinic") => {
+  const columns = getTableColumns(menuId, workspaceType)
+  return columns?.map((col) => ({
     id: col.id,
     label: col.label,
   })) || []
 }
 
 // Get table columns for a specific menu
-export const getTableColumns = (menuId) => {
-  return tableColumns[menuId] || []
+export const getTableColumns = (menuId, workspaceType = "clinic") => {
+  const columnDef = tableColumns[menuId]
+  if (!columnDef) return []
+  
+  // Dacă este o funcție, o apelăm cu workspaceType
+  if (typeof columnDef === "function") {
+    return columnDef(workspaceType)
+  }
+  
+  // Altfel returnează direct
+  return columnDef
 }
 

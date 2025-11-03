@@ -1,16 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import {
   Activity,
@@ -18,60 +8,47 @@ import {
   PanelsTopLeft,
   Search,
   Settings,
+  User,
   UserCog,
   Users,
   Wand2,
   Zap,
 } from "lucide-react"
+import useWorkspaceStore from "../store/workspaceStore"
+import useWorkspaceConfig from "../hooks/useWorkspaceConfig"
+import { useMemo } from "react"
 
-const menuItems = [
-  {
-    id: "kpi",
-    label: "KPI",
-    icon: Activity,
-  },
-  {
-    id: "programari",
-    label: "Programari",
-    icon: CalendarDays,
-  },
-  {
-    id: "tratamente",
-    label: "Tratamente",
-    icon: Wand2,
-  },
-  {
-    id: "pacienti",
-    label: "Pacienti",
-    icon: Users,
-  },
-  {
-    id: "medici",
-    label: "Medici",
-    icon: UserCog,
-  },
-  {
-    id: "automatizari",
-    label: "Automatizari",
-    icon: Zap,
-  },
-  {
-    id: "setari",
-    label: "Setari",
-    icon: Settings,
-  },
-]
+// Map pentru iconurile din configurare către componentele Lucide React
+const iconMap = {
+  Activity,
+  CalendarDays,
+  Settings,
+  User,
+  UserCog,
+  Users,
+  Wand2,
+  Zap,
+}
 
 const Sidebar = ({
   activeMenu,
   onMenuChange,
-  clinics = [],
-  selectedClinic,
-  onClinicChange,
+  workspace,
   onOpenSpotlight,
   isCollapsed = false,
   onToggleCollapse,
 }) => {
+  const { goToGroupView } = useWorkspaceStore()
+  const { menuItems: configMenuItems } = useWorkspaceConfig()
+
+  // Transformă meniurile din configurare în formatul așteptat de componentă
+  const menuItems = useMemo(() => {
+    return configMenuItems.map((item) => ({
+      ...item,
+      icon: iconMap[item.icon] || Settings, // Fallback la Settings dacă iconul nu există
+    }))
+  }, [configMenuItems])
+
   return (
     <aside
       className={cn(
@@ -88,43 +65,23 @@ const Sidebar = ({
         >
           <div className="flex items-center gap-2">
             {!isCollapsed ? (
-              clinics.length ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex items-center gap-3 rounded-md px-1 py-1 text-sm font-medium text-foreground transition hover:text-primary"
-                    >
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
-                        CL
-                      </span>
-                      <span className="flex flex-col text-left">
-                        <span>{selectedClinic?.name ?? "Selectează clinică"}</span>
-                      </span>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-64">
-                    <DropdownMenuLabel>Comută între clinici</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {clinics.map((clinic) => (
-                      <DropdownMenuItem
-                        key={clinic.id}
-                        onSelect={() => onClinicChange?.(clinic.id)}
-                        className={cn(
-                          "flex flex-col items-start gap-0.5 rounded-lg",
-                          clinic.id === selectedClinic?.id && "bg-muted/70 text-foreground",
-                        )}
-                      >
-                        <span className="text-sm font-medium">{clinic.name}</span>
-                        <span className="text-xs text-muted-foreground">{clinic.location}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              workspace ? (
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-3 rounded-md px-1 py-1 text-sm font-medium text-foreground transition hover:text-primary"
+                  onClick={goToGroupView}
+                >
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
+                    {workspace.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="flex flex-col text-left">
+                    <span>{workspace.name}</span>
+                  </span>
+                </Button>
               ) : (
                 <div className="flex items-center gap-3 px-1 py-1">
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
-                    CL
+                    WS
                   </span>
                 </div>
               )
@@ -202,7 +159,6 @@ const Sidebar = ({
                 )
               })}
             </nav>
-
 
           </div>
         </ScrollArea>

@@ -12,7 +12,7 @@ const useAppStore = create((set) => ({
   shiftDate: (days) => set((state) => ({ selectedDate: addDays(state.selectedDate, days) })),
   jumpToToday: () => set({ selectedDate: new Date() }),
 
-  // Clinic state
+  // Clinic state (kept for backward compatibility)
   selectedClinicId: null,
   setSelectedClinicId: (clinicId) => set({ selectedClinicId: clinicId }),
 
@@ -75,4 +75,3 @@ const useAppStore = create((set) => ({
 }))
 
 export default useAppStore
-

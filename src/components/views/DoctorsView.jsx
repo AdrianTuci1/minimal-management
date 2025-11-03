@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { getTableColumns } from "@/config/tableColumns"
 import { getDrawerInputs } from "@/config/drawerInputs.jsx"
 import useAppStore from "@/store/appStore"
+import useWorkspaceConfig from "@/hooks/useWorkspaceConfig"
 import { User } from "lucide-react"
 
 const statusVariants = {
@@ -23,8 +24,9 @@ const statusVariants = {
 }
 
 const DoctorsView = ({ doctors = [] }) => {
-  const columns = getTableColumns("medici")
-  const drawerFields = getDrawerInputs("medici")
+  const { workspaceType, getLabel } = useWorkspaceConfig()
+  const columns = getTableColumns("medici", workspaceType)
+  const drawerFields = getDrawerInputs("medici", workspaceType)
   const { isDrawerOpen, drawerData, drawerViewId, drawerMode, openDrawer, closeDrawer } = useAppStore()
   
   const [formData, setFormData] = useState({})
@@ -141,7 +143,7 @@ const DoctorsView = ({ doctors = [] }) => {
       <Drawer
         open={isDrawerOpen && drawerViewId === "medici"}
         onOpenChange={closeDrawer}
-        title={isCreateMode ? "Adaugă medic nou" : "Detalii medic"}
+        title={isCreateMode ? `${getLabel("addDoctor")}` : `Detalii ${getLabel("doctor").toLowerCase()}`}
         tabs={
           !isCreateMode
             ? [
@@ -164,7 +166,7 @@ const DoctorsView = ({ doctors = [] }) => {
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <h3 className="text-xl font-semibold text-foreground">{drawerData.name || "Medic nou"}</h3>
+                              <h3 className="text-xl font-semibold text-foreground">{drawerData.name || `${getLabel("doctor")} nou`}</h3>
                               {drawerData.specialty && <p className="text-sm text-muted-foreground">{drawerData.specialty}</p>}
                             </div>
                           </div>

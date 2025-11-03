@@ -4,7 +4,97 @@ import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const DropdownMenu = DropdownMenuPrimitive.Root
+// Global state to track if any dropdown is open
+let globalDropdownOpenState = false
+const listeners = new Set<() => void>()
+
+const setGlobalDropdownOpen = (open: boolean) => {
+  if (globalDropdownOpenState !== open) {
+    globalDropdownOpenState = open
+    listeners.forEach(listener => listener())
+  }
+}
+
+const useGlobalDropdownOpen = () => {
+  const [isOpen, setIsOpen] = React.useState(globalDropdownOpenState)
+  
+  React.useEffect(() => {
+    const listener = () => setIsOpen(globalDropdownOpenState)
+    listeners.add(listener)
+    return () => {
+      listeners.delete(listener)
+    }
+  }, [])
+  
+  return isOpen
+}
+
+// Global backdrop component
+const GlobalDropdownBackdrop = () => {
+  const isOpen = useGlobalDropdownOpen()
+  
+  React.useEffect(() => {
+    // Also check DOM periodically for any open dropdowns
+    const checkDropdowns = () => {
+      const dropdownContent = document.querySelector('[data-radix-dropdown-menu-content][data-state="open"]')
+      setGlobalDropdownOpen(!!dropdownContent)
+    }
+    
+    const observer = new MutationObserver(checkDropdowns)
+    observer.observe(document.body, { 
+      childList: true, 
+      subtree: true, 
+      attributes: true, 
+      attributeFilter: ['data-state'] 
+    })
+    
+    checkDropdowns()
+    
+    return () => observer.disconnect()
+  }, [])
+  
+  if (!isOpen) return null
+  
+  return (
+    <div 
+      className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm animate-in fade-in-0"
+      onClick={() => {
+        // Close all dropdowns
+        const event = new KeyboardEvent('keydown', { 
+          key: 'Escape',
+          bubbles: true,
+          cancelable: true
+        })
+        document.dispatchEvent(event)
+      }}
+    />
+  )
+}
+
+// Wrapper component for DropdownMenu that tracks open state
+const DropdownMenu = ({ open: controlledOpen, onOpenChange, ...props }: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) => {
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
+  
+  // Use controlled or uncontrolled state
+  const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen
+  
+  const handleOpenChange = (newOpen: boolean) => {
+    setGlobalDropdownOpen(newOpen)
+    if (controlledOpen === undefined) {
+      setUncontrolledOpen(newOpen)
+    }
+    onOpenChange?.(newOpen)
+  }
+
+  React.useEffect(() => {
+    setGlobalDropdownOpen(open)
+  }, [open])
+
+  return <DropdownMenuPrimitive.Root open={open} onOpenChange={handleOpenChange} {...props} />
+}
+
+// Export backdrop component to be used globally
+export { GlobalDropdownBackdrop }
 
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
 
