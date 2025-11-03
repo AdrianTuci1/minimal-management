@@ -94,7 +94,7 @@ const SpotlightSearch = ({ open, items = [], onClose, onSelect, query: controlle
   return (
     <div
       className={cn(
-        "pointer-events-none fixed inset-0 z-50 flex items-start justify-center bg-background/70 backdrop-blur-md transition",
+        "pointer-events-none fixed inset-0 z-50 flex items-start justify-center bg-black/20 backdrop-blur-xs transition",
         open ? "pointer-events-auto opacity-100" : "opacity-0",
       )}
     >

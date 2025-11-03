@@ -7,6 +7,7 @@ import {
   ZoomOut,
   Users,
 } from "lucide-react"
+import { gsap } from "gsap"
 
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -52,6 +53,13 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
   const boardRef = useRef(null)
   const [transform, setTransform] = useState({ scale: 1, translate: { x: 24, y: 24 } })
   const [dragState, setDragState] = useState(null)
+  const isMiddleButtonRef = useRef(false)
+  const [isMiddleButton, setIsMiddleButton] = useState(false)
+  const zoomControlsRef = useRef(null)
+  const clientsHeaderRef = useRef(null)
+  const timelineHeaderRef = useRef(null)
+  const clientCardRefs = useRef({})
+  const clientColumnRefs = useRef({})
   const draggingAppointmentId = dragState?.type === "appointment" ? dragState.id : null
 
   const timeSlots = useMemo(() => getTimeSlots(), [])
@@ -80,6 +88,108 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
     return map
   }, [appointments, clients])
 
+  // Animate elements with GSAP - only once per session
+  useEffect(() => {
+    const animationKey = 'fitness-whiteboard-animated'
+    if (sessionStorage.getItem(animationKey) === 'true') {
+      return
+    }
+
+    let tl = null
+    const timeoutId = setTimeout(() => {
+      sessionStorage.setItem(animationKey, 'true')
+      
+      tl = gsap.timeline()
+
+      // Zoom controls
+      if (zoomControlsRef.current) {
+        gsap.set(zoomControlsRef.current, { opacity: 0, y: 20, scale: 0.95 })
+        tl.to(zoomControlsRef.current, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          ease: "power2.out"
+        }, 0.1)
+      }
+
+      // Clients header
+      if (clientsHeaderRef.current) {
+        gsap.set(clientsHeaderRef.current, { opacity: 0, y: 20, scale: 0.95 })
+        tl.to(clientsHeaderRef.current, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          ease: "power2.out"
+        }, 0.2)
+      }
+
+      // Timeline header
+      if (timelineHeaderRef.current) {
+        gsap.set(timelineHeaderRef.current, { opacity: 0, y: 20, scale: 0.95 })
+        tl.to(timelineHeaderRef.current, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          ease: "power2.out"
+        }, 0.3)
+      }
+
+      // Client cards and columns
+      clients.forEach((client, clientIndex) => {
+        const delay = 0.4 + clientIndex * 0.2
+
+        if (clientCardRefs.current[client.id]) {
+          gsap.set(clientCardRefs.current[client.id], { opacity: 0, y: 30, scale: 0.9 })
+          tl.to(clientCardRefs.current[client.id], {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.7,
+            ease: "power2.out"
+          }, delay)
+        }
+
+        if (clientColumnRefs.current[client.id]) {
+          gsap.set(clientColumnRefs.current[client.id], { opacity: 0, y: 30, scale: 0.95 })
+          tl.to(clientColumnRefs.current[client.id], {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.7,
+            ease: "power2.out"
+          }, delay + 0.1)
+        }
+
+        // Appointments for this client
+        const rowAppointments = appointmentsByClient[client.id] ?? []
+        rowAppointments.forEach((appointment, appointmentIndex) => {
+          const appointmentDelay = delay + 0.2 + appointmentIndex * 0.08
+          const appointmentElement = document.querySelector(`[data-appointment-id="${appointment.id}"]`)
+          if (appointmentElement) {
+            gsap.set(appointmentElement, { opacity: 0, y: 20, scale: 0.95 })
+            tl.to(appointmentElement, {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              duration: 0.5,
+              ease: "power2.out"
+            }, appointmentDelay)
+          }
+        })
+      })
+    }, 100)
+
+    return () => {
+      clearTimeout(timeoutId)
+      if (tl) {
+        tl.kill()
+      }
+    }
+  }, [clients, appointments, appointmentsByClient])
+
   const getSlotIndex = (minutes) => {
     if (minutes < DAY_START || minutes > DAY_END) return -1
     return Math.floor((minutes - DAY_START) / SLOT_INTERVAL)
@@ -93,12 +203,60 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
       event.preventDefault()
     }
 
+    const handleMouseDown = (event) => {
+      // Prevenim selectarea când folosim scroll wheel click
+      if (event.button === 1) {
+        isMiddleButtonRef.current = true
+        setIsMiddleButton(true)
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    const handleMouseUp = (event) => {
+      // Prevenim selectarea când se termină scroll wheel click
+      if (event.button === 1) {
+        event.preventDefault()
+        event.stopPropagation()
+        // Resetăm flag-ul după un mic delay pentru a preveni click-ul care urmează
+        setTimeout(() => {
+          isMiddleButtonRef.current = false
+          setIsMiddleButton(false)
+        }, 100)
+      }
+    }
+
+    const handleClick = (event) => {
+      // Prevenim click-ul stâng care poate fi declanșat de scroll wheel click
+      if (isMiddleButtonRef.current || isMiddleButton || (dragState && dragState.pointerId !== null)) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    const handleSelectStart = (event) => {
+      // Prevenim selectarea textului când suntem în drag cu scroll wheel
+      if (isMiddleButtonRef.current || isMiddleButton || (dragState && dragState.pointerId !== null)) {
+        event.preventDefault()
+        event.stopPropagation()
+        return false
+      }
+    }
+
     element.addEventListener("contextmenu", handleContextMenu)
+    element.addEventListener("mousedown", handleMouseDown)
+    element.addEventListener("mouseup", handleMouseUp)
+    element.addEventListener("click", handleClick)
+    document.addEventListener("selectstart", handleSelectStart)
 
     return () => {
       element.removeEventListener("contextmenu", handleContextMenu)
+      element.removeEventListener("mousedown", handleMouseDown)
+      element.removeEventListener("mouseup", handleMouseUp)
+      element.removeEventListener("click", handleClick)
+      document.removeEventListener("selectstart", handleSelectStart)
     }
-  }, [])
+  }, [dragState, isMiddleButton])
 
   const toBoardCoords = (clientX, clientY) => {
     const element = boardRef.current
@@ -112,6 +270,29 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
   const handlePointerDown = (event) => {
     const element = boardRef.current
     if (!element) return
+
+    // Scroll wheel click (button === 1) = doar pan (nu permite drag & drop pentru programări)
+    if (event.button === 1) {
+      // Setăm flag-ul pentru a preveni selectarea
+      isMiddleButtonRef.current = true
+      setIsMiddleButton(true)
+
+      element.setPointerCapture(event.pointerId)
+      event.preventDefault()
+      event.stopPropagation()
+
+      // Doar pan, nu permitem drag & drop pentru programări
+      setDragState({
+        type: "pan",
+        pointerId: event.pointerId,
+        origin: { x: event.clientX, y: event.clientY },
+        start: { ...transform.translate },
+      })
+      return
+    }
+
+    // Click stâng (button === 0) = drag & drop pentru programări sau pan
+    if (event.button !== 0) return
 
     const appointmentElement = event.target.closest("[data-appointment-id]")
 
@@ -213,6 +394,11 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
       element.releasePointerCapture(event.pointerId)
     }
     setDragState(null)
+    // Resetăm flag-ul după un mic delay pentru a preveni click-ul care urmează
+    setTimeout(() => {
+      isMiddleButtonRef.current = false
+      setIsMiddleButton(false)
+    }, 100)
   }
 
   const handleWheel = (event) => {
@@ -271,7 +457,10 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
       <TooltipProvider delayDuration={100}>
         <div className="relative flex-1 min-h-0 overflow-hidden">
           <div className="pointer-events-none absolute right-4 top-4 z-20 flex flex-col gap-2">
-            <div className="pointer-events-auto flex items-center gap-2 rounded-md border border-border/70 bg-white px-2 py-1 shadow-sm">
+            <div
+              ref={zoomControlsRef}
+              className="pointer-events-auto flex items-center gap-2 rounded-md border border-border/70 bg-white px-2 py-1 shadow-sm"
+            >
               <Button
                 variant="ghost"
                 size="icon"
@@ -305,7 +494,16 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
           <ScrollArea className="h-full w-full" type="always">
             <div
               ref={boardRef}
-              className="relative h-full touch-none"
+              className={cn(
+                "relative h-full touch-none",
+                (dragState || isMiddleButton) && "select-none"
+              )}
+              style={{
+                userSelect: (dragState || isMiddleButton) ? "none" : "auto",
+                WebkitUserSelect: (dragState || isMiddleButton) ? "none" : "auto",
+                MozUserSelect: (dragState || isMiddleButton) ? "none" : "auto",
+                msUserSelect: (dragState || isMiddleButton) ? "none" : "auto",
+              }}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={endDrag}
@@ -325,7 +523,10 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                 >
                   {/* Prima coloană - Header pentru clienți */}
                   <div className="relative">
-                    <div className="mb-9 flex items-center justify-between rounded-lg border-2 border-dashed border-border/80 bg-white shadow-sm px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground">
+                    <div
+                      ref={clientsHeaderRef}
+                      className="mb-9 flex items-center justify-between rounded-lg border-2 border-dashed border-border/80 bg-white shadow-sm px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground"
+                    >
                       <span>Clienți</span>
                       <Users className="h-4 w-4" />
                     </div>
@@ -334,6 +535,7 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                   {/* Header row - Timeline cu ore */}
                   <div className="relative" style={{ gridColumn: `2 / -1` }}>
                     <div
+                      ref={timelineHeaderRef}
                       className="relative rounded-lg border-2 border-dashed border-border/80 bg-white"
                       style={{ width: boardWidth, height: "100%" }}
                     >
@@ -369,7 +571,12 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                       <div key={`client-row-${client.id}`} style={{ display: 'contents' }}>
                         {/* Coloana clientului */}
                         <div className="relative">
-                          <div className="flex flex-col gap-1 rounded-lg border-2 border-border/80 bg-white px-3 py-2 shadow-md h-full">
+                          <div
+                            ref={(el) => {
+                              if (el) clientCardRefs.current[client.id] = el
+                            }}
+                            className="flex flex-col gap-1 rounded-lg border-2 border-border/80 bg-white px-3 py-2 shadow-md h-full"
+                          >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Users className="h-4 w-4 text-muted-foreground" />
@@ -399,11 +606,14 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
 
                         {/* Coloana cu programări */}
                         <div
+                          ref={(el) => {
+                            if (el) clientColumnRefs.current[client.id] = el
+                          }}
                           className={cn(
                             "relative rounded-lg border-2 border-border/70 bg-white transition",
                             draggingAppointmentId && rowAppointments.some((item) => item.id === draggingAppointmentId)
                               ? "ring-2 ring-primary/40 border-primary/60"
-                              : "hover:border-primary/50",
+                              : "hover:border-primary/50"
                           )}
                           style={{ 
                             gridColumn: `2 / -1`,
@@ -495,7 +705,7 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                                 <TooltipContent side="bottom" className="rounded-md border-border/70 bg-white/95 shadow-lg">
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <GripVertical className="h-3.5 w-3.5" />
-                                    Glisează pentru a reprograma (pas de 30 minute)
+                                    apasa si gliseaza pentru a reprograma
                                   </div>
                                 </TooltipContent>
                               </Tooltip>

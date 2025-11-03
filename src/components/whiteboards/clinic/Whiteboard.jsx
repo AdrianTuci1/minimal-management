@@ -6,6 +6,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react"
+import { gsap } from "gsap"
 
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -38,6 +39,13 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
   const [dragState, setDragState] = useState(null)
   const isMiddleButtonRef = useRef(false)
   const [isMiddleButton, setIsMiddleButton] = useState(false)
+  const zoomControlsRef = useRef(null)
+  const timelineHeaderRef = useRef(null)
+  const timelineColumnRef = useRef(null)
+  const doctorCardRefs = useRef({})
+  const doctorColumnRefs = useRef({})
+  const appointmentRefs = useRef({})
+  const hasAnimatedRef = useRef(false)
   const totalSlots = useMemo(() => (DAY_END - DAY_START) / SLOT_INTERVAL, [])
   const boardHeight = totalSlots * SLOT_HEIGHT
   const draggingAppointmentId = dragState?.type === "appointment" ? dragState.id : null
@@ -56,6 +64,111 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
 
     return map
   }, [appointments, doctors])
+
+  // Animate elements with GSAP - only once per session
+  useEffect(() => {
+    // Skip if already animated in this session
+    const animationKey = 'whiteboard-animated'
+    if (sessionStorage.getItem(animationKey) === 'true') {
+      return
+    }
+
+    let tl = null
+    // Wait for DOM to be ready - increased timeout to ensure elements are rendered
+    const timeoutId = setTimeout(() => {
+      // Mark as animated before starting animations
+      sessionStorage.setItem(animationKey, 'true')
+      
+      tl = gsap.timeline()
+
+      // Zoom controls
+      if (zoomControlsRef.current) {
+        gsap.set(zoomControlsRef.current, { opacity: 0, y: 20, scale: 0.95 })
+        tl.to(zoomControlsRef.current, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          ease: "power2.out"
+        }, 0.1)
+      }
+
+      // Timeline header
+      if (timelineHeaderRef.current) {
+        gsap.set(timelineHeaderRef.current, { opacity: 0, y: 20, scale: 0.95 })
+        tl.to(timelineHeaderRef.current, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          ease: "power2.out"
+        }, 0.2)
+      }
+
+      // Timeline column
+      if (timelineColumnRef.current) {
+        gsap.set(timelineColumnRef.current, { opacity: 0, y: 20, scale: 0.95 })
+        tl.to(timelineColumnRef.current, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          ease: "power2.out"
+        }, 0.3)
+      }
+
+      // Doctor cards and columns
+      doctors.forEach((doctor, doctorIndex) => {
+        const delay = 0.4 + doctorIndex * 0.2
+
+        if (doctorCardRefs.current[doctor.id]) {
+          gsap.set(doctorCardRefs.current[doctor.id], { opacity: 0, y: 30, scale: 0.9 })
+          tl.to(doctorCardRefs.current[doctor.id], {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.7,
+            ease: "power2.out"
+          }, delay)
+        }
+
+        if (doctorColumnRefs.current[doctor.id]) {
+          gsap.set(doctorColumnRefs.current[doctor.id], { opacity: 0, y: 30, scale: 0.95 })
+          tl.to(doctorColumnRefs.current[doctor.id], {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.7,
+            ease: "power2.out"
+          }, delay + 0.1)
+        }
+
+        // Appointments for this doctor - use querySelector to find them
+        const columnAppointments = appointmentsByDoctor[doctor.id] ?? []
+        columnAppointments.forEach((appointment, appointmentIndex) => {
+          const appointmentDelay = delay + 0.2 + appointmentIndex * 0.08
+          const appointmentElement = document.querySelector(`[data-appointment-id="${appointment.id}"]`)
+          if (appointmentElement) {
+            gsap.set(appointmentElement, { opacity: 0, y: 20, scale: 0.95 })
+            tl.to(appointmentElement, {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              duration: 0.5,
+              ease: "power2.out"
+            }, appointmentDelay)
+          }
+        })
+      })
+    }, 100)
+
+    return () => {
+      clearTimeout(timeoutId)
+      if (tl) {
+        tl.kill()
+      }
+    }
+  }, [])
 
   const timelineMarks = useMemo(() => {
     const marks = []
@@ -314,7 +427,10 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
       <TooltipProvider delayDuration={100}>
         <div className="relative flex-1 min-h-0 overflow-hidden">
           <div className="pointer-events-none absolute right-4 top-4 z-20 flex flex-col gap-2">
-            <div className="pointer-events-auto flex items-center gap-2 rounded-md border border-border/70 bg-white px-2 py-1 shadow-sm">
+            <div
+              ref={zoomControlsRef}
+              className="pointer-events-auto flex items-center gap-2 rounded-md border border-border/70 bg-white px-2 py-1 shadow-sm"
+            >
               <Button
                 variant="ghost"
                 size="icon"
@@ -376,11 +492,15 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
                   style={{ gridTemplateColumns }}
                 >
                   <div className="relative">
-                    <div className="mb-9 flex items-center justify-between rounded-lg border-2 border-dashed border-border/80 bg-white shadow-sm px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground">
+                    <div
+                      ref={timelineHeaderRef}
+                      className="mb-9 flex items-center justify-between rounded-lg border-2 border-dashed border-border/80 bg-white shadow-sm px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground"
+                    >
                       <span>Timp</span>
                       <Clock3 className="h-4 w-4" />
                     </div>
                     <div
+                      ref={timelineColumnRef}
                       className="relative rounded-lg border-2 border-dashed border-border/80 bg-white"
                       style={{ height: boardHeight }}
                     >
@@ -403,12 +523,17 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
                     </div>
                   </div>
 
-                  {doctors.map((doctor) => {
+                  {doctors.map((doctor, doctorIndex) => {
                     const columnAppointments = appointmentsByDoctor[doctor.id] ?? []
 
                     return (
                       <div key={doctor.id} className="relative">
-                        <div className="mb-3 flex flex-col gap-1 rounded-lg border-2 border-border/80 bg-white px-3 py-2 shadow-md">
+                        <div
+                          ref={(el) => {
+                            if (el) doctorCardRefs.current[doctor.id] = el
+                          }}
+                          className="mb-3 flex flex-col gap-1 rounded-lg border-2 border-border/80 bg-white px-3 py-2 shadow-md"
+                        >
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-semibold text-foreground">
                               {doctor.name}
@@ -424,16 +549,19 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
                         </div>
 
                         <div
+                          ref={(el) => {
+                            if (el) doctorColumnRefs.current[doctor.id] = el
+                          }}
                           className={cn(
                             "relative rounded-lg border-2 border-border/70 bg-white transition",
                             draggingAppointmentId && columnAppointments.some((item) => item.id === draggingAppointmentId)
                               ? "ring-2 ring-primary/40 border-primary/60"
-                              : "hover:border-primary/50",
+                              : "hover:border-primary/50"
                           )}
                           style={{ height: boardHeight }}
                         >
 
-                          {columnAppointments.map((appointment) => {
+                          {columnAppointments.map((appointment, appointmentIndex) => {
                             const top = ((appointment.start - DAY_START) / SLOT_INTERVAL) * SLOT_HEIGHT
                             const height = (appointment.duration / SLOT_INTERVAL) * SLOT_HEIGHT - 12
                             const nextStatusStyle = statusStyles[appointment.status] ?? "bg-muted text-foreground"
@@ -443,13 +571,16 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
                               <Tooltip key={appointment.id} delayDuration={0}>
                                 <TooltipTrigger asChild>
                                   <div
+                                    ref={(el) => {
+                                      if (el) appointmentRefs.current[appointment.id] = el
+                                    }}
                                     data-appointment-id={appointment.id}
                                     className={cn(
                                       "absolute left-2 right-2 z-10 flex h-full min-h-[60px] flex-col rounded-lg border-2 border-border/80 bg-white shadow-md transition-all overflow-hidden",
                                       isShortDuration ? "gap-1 px-2 py-1.5" : "gap-2 px-3 py-2",
                                       draggingAppointmentId === appointment.id
                                         ? "ring-2 ring-primary/60 shadow-xl border-primary"
-                                        : "hover:shadow-lg hover:border-primary/60",
+                                        : "hover:shadow-lg hover:border-primary/60"
                                     )}
                                     style={{ top, height }}
                                   >

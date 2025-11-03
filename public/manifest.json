@@ -1,0 +1,21 @@
+{
+  "name": "App - Simplu | Management pentru Clinici, Hoteluri și Săli de Fitness",
+  "short_name": "App Simplu",
+  "description": "Soluție completă de management pentru clinici medicale, hoteluri și săli de fitness",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "ro"
+}
+
