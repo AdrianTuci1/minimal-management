@@ -38,7 +38,7 @@ export const workspaceTypes = {
       nextAppointment: "Programare următoare",
     },
     menuItems: [
-      { id: "kpi", label: "KPI", icon: "Activity" },
+      { id: "kpi", label: "Home", icon: "Home" },
       { id: "programari", label: "Programari", icon: "CalendarDays" },
       { id: "tratamente", label: "Tratamente", icon: "Wand2" },
       { id: "pacienti", label: "Pacienti", icon: "Users" },
@@ -76,7 +76,7 @@ export const workspaceTypes = {
       nextAppointment: "Programare următoare",
     },
     menuItems: [
-      { id: "kpi", label: "KPI", icon: "Activity" },
+      { id: "kpi", label: "Home", icon: "Home" },
       { id: "programari", label: "Programari", icon: "CalendarDays" },
       { id: "tratamente", label: "Pachete", icon: "Wand2" },
       { id: "pacienti", label: "Clienți", icon: "Users" },
@@ -113,7 +113,7 @@ export const workspaceTypes = {
       nextAppointment: "Rezervare următoare",
     },
     menuItems: [
-      { id: "kpi", label: "KPI", icon: "Activity" },
+      { id: "kpi", label: "Home", icon: "Home" },
       { id: "programari", label: "Rezervări", icon: "CalendarDays" },
       { id: "tratamente", label: "Servicii", icon: "Wand2" },
       { id: "pacienti", label: "Clienți", icon: "Users" },

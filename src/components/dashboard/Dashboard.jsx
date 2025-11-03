@@ -9,8 +9,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { Plus, Building2, CreditCard, Sparkles, TrendingUp, Folder, BarChart3, FileText, Image, Video, X, Users, Trash2, ChevronDown, Share2, FolderPlus } from "lucide-react"
+import { Plus, Building2, CreditCard, Sparkles, TrendingUp, Folder, BarChart3, FileText, Image, Video, X, Users, Trash2, ChevronDown, Share2, FolderPlus, MoreVertical, Copy, Settings, Pencil, ImageIcon } from "lucide-react"
 import useWorkspaceStore from "../../store/workspaceStore"
 import DashboardSidebar from "./DashboardSidebar"
 import DashboardHeader from "./DashboardHeader"
@@ -75,6 +76,8 @@ function Dashboard() {
     selectedGroupId, 
     selectGroup,
     createGroup,
+    updateGroup,
+    deleteGroup,
     workspaces, 
     subscription, 
     createWorkspace, 
@@ -558,7 +561,7 @@ function Dashboard() {
         onOpenCreateTeamSpotlight={() => setIsCreateTeamSpotlightOpen(true)}
       />
 
-      <div className="flex-1 flex flex-col bg-background">
+      <div className="flex-1 flex flex-col bg-background h-screen overflow-hidden">
         {/* Header with Actions - Hidden for drafts, recents, and groups */}
         {activeView !== "drafts" && 
          !activeView.startsWith("group-drafts-") && 
@@ -886,7 +889,7 @@ function Dashboard() {
                     return (
                       <Card
                         key={group.id}
-                        className="cursor-pointer hover:shadow-lg hover:border-primary/20 transition-all duration-200"
+                        className="cursor-pointer hover:shadow-lg hover:border-primary/20 transition-all duration-200 group relative"
                         onClick={() => {
                           selectGroup(group.id)
                           handleViewChange("all-projects")
@@ -903,6 +906,92 @@ function Dashboard() {
                                 {groupWorkspaces.length} {groupWorkspaces.length === 1 ? "spațiu" : "spații"} de lucru
                               </CardDescription>
                             </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation()
+                                  // TODO: Implement view members
+                                }}>
+                                  <Users className="h-4 w-4 mr-2" />
+                                  Vezi membrii
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation()
+                                  // TODO: Implement view settings
+                                }}>
+                                  <Settings className="h-4 w-4 mr-2" />
+                                  Vezi setări
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation()
+                                  // Copy group
+                                  const copiedWorkspaces = workspaces.filter(ws => ws.groupId === group.id)
+                                  createGroup({ 
+                                    name: `${group.name} (copie)`,
+                                    memberCount: group.memberCount || 1
+                                  })
+                                  // Get the newly created group ID from store
+                                  setTimeout(() => {
+                                    const store = useWorkspaceStore.getState()
+                                    const newGroupId = store.selectedGroupId
+                                    copiedWorkspaces.forEach(ws => {
+                                      createWorkspace({
+                                        name: ws.name,
+                                        type: ws.type,
+                                        groupId: newGroupId,
+                                        logo: ws.logo
+                                      })
+                                    })
+                                  }, 100)
+                                }}>
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Copiază
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation()
+                                  const newName = prompt("Redenumește grupul:", group.name)
+                                  if (newName && newName.trim() && newName !== group.name) {
+                                    updateGroup(group.id, { name: newName.trim() })
+                                  }
+                                }}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Redenumește
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation()
+                                  const newIcon = prompt("Introdu iconul (emoji sau text):", "")
+                                  if (newIcon && newIcon.trim()) {
+                                    updateGroup(group.id, { icon: newIcon.trim() })
+                                  }
+                                }}>
+                                  <ImageIcon className="h-4 w-4 mr-2" />
+                                  Schimbă icon
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (confirm(`Ești sigur că vrei să ștergi grupul "${group.name}"?`)) {
+                                      deleteGroup(group.id)
+                                    }
+                                  }}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Șterge
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </CardHeader>
                       </Card>

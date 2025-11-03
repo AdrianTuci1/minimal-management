@@ -81,14 +81,14 @@ export default {
         "pulse-soft": "pulse-soft 2.4s ease-in-out infinite",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", ...fontFamily.sans],
+        sans: ["Outfit", "sans-serif", ...fontFamily.sans],
       },
       backgroundImage: {
         "grid-dots":
-          "radial-gradient(circle, rgba(255,255,255,0.16) 1px, transparent 1px)",
+          "radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)",
       },
       backgroundSize: {
-        "grid-dots": "24px 24px",
+        "grid-dots": "16px 16px",
       },
     },
   },

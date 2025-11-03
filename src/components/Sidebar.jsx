@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import {
   Activity,
   CalendarDays,
+  Home,
   PanelsTopLeft,
   Search,
   Settings,
@@ -22,6 +23,7 @@ import { useMemo } from "react"
 const iconMap = {
   Activity,
   CalendarDays,
+  Home,
   Settings,
   User,
   UserCog,
@@ -148,12 +150,7 @@ const Sidebar = ({
                       <Icon className="h-3.5 w-3.5" />
                     </span>
                     {!isCollapsed ? (
-                      <span className="text-sm font-medium leading-none">{item.label}</span>
-                    ) : null}
-                    {item.badge && !isCollapsed ? (
-                      <Badge variant="outline" className="ml-0 text-[10px] uppercase tracking-wide">
-                        {item.badge}
-                      </Badge>
+                      <span className="text-sm font-medium leading-none text-muted-foreground">{item.label}</span>
                     ) : null}
                   </Button>
                 )

@@ -4,8 +4,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { ChevronDown, Plus, FolderPlus, Share2, Grid3x3, List, Users } from "lucide-react"
+import { ChevronDown, Plus, FolderPlus, Share2, Grid3x3, List, Users, Settings, Copy, Pencil, ImageIcon, Trash2 } from "lucide-react"
 import useWorkspaceStore from "../../store/workspaceStore"
 
 const DashboardHeader = ({ 
@@ -14,7 +15,7 @@ const DashboardHeader = ({
   onCreateWorkspaceClick,
   onCreateGroupClick 
 }) => {
-  const { groups, selectedGroupId, selectGroup } = useWorkspaceStore()
+  const { groups, selectedGroupId, selectGroup, updateGroup, deleteGroup, createGroup, createWorkspace, workspaces } = useWorkspaceStore()
   
   const selectedGroup = groups.find(g => g.id === selectedGroupId)
 
@@ -22,6 +23,9 @@ const DashboardHeader = ({
     // When selecting a group from header, update view to show that group's workspaces
     onViewChange?.(groupId)
   }
+
+  // Debug: check if we should hide the button
+  const shouldHideCreateGroupButton = activeView === "groups" || String(activeView) === "groups"
 
   return (
     <div className="border-b border-border/60 bg-background px-8 py-6">
@@ -45,20 +49,83 @@ const DashboardHeader = ({
                     {group.name}'s grup
                   </DropdownMenuItem>
                 ))}
+                {selectedGroup && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => {
+                      // TODO: Implement view members
+                    }}>
+                      <Users className="h-4 w-4 mr-2" />
+                      Vezi membrii
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      // TODO: Implement view settings
+                    }}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Vezi setări
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => {
+                      // Copy group
+                      const copiedWorkspaces = workspaces.filter(ws => ws.groupId === selectedGroup.id)
+                      createGroup({ 
+                        name: `${selectedGroup.name} (copie)`,
+                        memberCount: selectedGroup.memberCount || 1
+                      })
+                      // Get the newly created group ID from store
+                      setTimeout(() => {
+                        const store = useWorkspaceStore.getState()
+                        const newGroupId = store.selectedGroupId
+                        copiedWorkspaces.forEach(ws => {
+                          createWorkspace({
+                            name: ws.name,
+                            type: ws.type,
+                            groupId: newGroupId,
+                            logo: ws.logo
+                          })
+                        })
+                      }, 100)
+                    }}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copiază
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const newName = prompt("Redenumește grupul:", selectedGroup.name)
+                      if (newName && newName.trim() && newName !== selectedGroup.name) {
+                        updateGroup(selectedGroup.id, { name: newName.trim() })
+                      }
+                    }}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Redenumește
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const newIcon = prompt("Introdu iconul (emoji sau text):", "")
+                      if (newIcon && newIcon.trim()) {
+                        updateGroup(selectedGroup.id, { icon: newIcon.trim() })
+                      }
+                    }}>
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Schimbă icon
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        if (confirm(`Ești sigur că vrei să ștergi grupul "${selectedGroup.name}"?`)) {
+                          deleteGroup(selectedGroup.id)
+                        }
+                      }}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Șterge
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onCreateGroupClick}
-            className="gap-2"
-          >
-            <FolderPlus className="h-4 w-4" />
-            <span className="hidden sm:inline">Creează grup</span>
-          </Button>
           <Button
             variant="default"
             size="sm"

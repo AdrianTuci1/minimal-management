@@ -267,7 +267,7 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
 
   return (
     <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden bg-white height-[calc(100vh-200px)]">
-      <div className="height-[calc(100vh-64px)]">
+      <div className="height-[calc(100vh-64px)] bg-grid-dots">
       <TooltipProvider delayDuration={100}>
         <div className="relative flex-1 min-h-0 overflow-hidden">
           <div className="pointer-events-none absolute right-4 top-4 z-20 flex flex-col gap-2">
@@ -325,7 +325,7 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                 >
                   {/* Prima coloană - Header pentru clienți */}
                   <div className="relative">
-                    <div className="mb-9 flex items-center justify-between rounded-lg border border-dashed border-muted/70 bg-white/80 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <div className="mb-9 flex items-center justify-between rounded-lg border-2 border-dashed border-border/80 bg-white shadow-sm px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground">
                       <span>Clienți</span>
                       <Users className="h-4 w-4" />
                     </div>
@@ -334,18 +334,17 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                   {/* Header row - Timeline cu ore */}
                   <div className="relative" style={{ gridColumn: `2 / -1` }}>
                     <div
-                      className="relative rounded-lg border border-dashed border-muted/60 bg-white"
+                      className="relative rounded-lg border-2 border-dashed border-border/80 bg-white"
                       style={{ width: boardWidth, height: "100%" }}
                     >
-                      <div className="absolute inset-0 rounded-lg bg-grid-dots opacity-30" />
                       {timeSlots.map((slot, index) => {
                         const isWeekend = false // Nu avem weekend pentru ore
                         return (
                           <div
                             key={`slot-${index}`}
                             className={cn(
-                              "absolute top-0 bottom-0 border-l border-border/30",
-                              slot.isHour && "border-border/70",
+                              "absolute top-0 bottom-0 border-l border-border/50",
+                              slot.isHour && "border-border",
                             )}
                             style={{ left: slot.left }}
                           >
@@ -370,7 +369,7 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                       <div key={`client-row-${client.id}`} style={{ display: 'contents' }}>
                         {/* Coloana clientului */}
                         <div className="relative">
-                          <div className="flex flex-col gap-1 rounded-lg border border-border/70 bg-white px-3 py-2 shadow-sm h-full">
+                          <div className="flex flex-col gap-1 rounded-lg border-2 border-border/80 bg-white px-3 py-2 shadow-md h-full">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Users className="h-4 w-4 text-muted-foreground" />
@@ -380,7 +379,7 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                               </div>
                               {client.color && (
                                 <span
-                                  className="h-2 w-2 rounded-full"
+                                  className="h-2.5 w-2.5 rounded-full ring-2 ring-white shadow-sm"
                                   style={{ backgroundColor: client.color }}
                                 />
                               )}
@@ -401,17 +400,16 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                         {/* Coloana cu programări */}
                         <div
                           className={cn(
-                            "relative rounded-lg border border-border/60 bg-white transition",
+                            "relative rounded-lg border-2 border-border/70 bg-white transition",
                             draggingAppointmentId && rowAppointments.some((item) => item.id === draggingAppointmentId)
-                              ? "ring-2 ring-primary/25"
-                              : "hover:border-primary/35",
+                              ? "ring-2 ring-primary/40 border-primary/60"
+                              : "hover:border-primary/50",
                           )}
                           style={{ 
                             gridColumn: `2 / -1`,
                             height: ROW_HEIGHT 
                           }}
                         >
-                          <div className="pointer-events-none absolute inset-0 rounded-md bg-grid-dots opacity-30" />
 
                           {rowAppointments.map((appointment) => {
                             const startMinutes = appointment.start || appointment.startMinutes || DAY_START
@@ -434,11 +432,11 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                                   <div
                                     data-appointment-id={appointment.id}
                                     className={cn(
-                                      "absolute z-10 flex h-full min-w-[100px] flex-col rounded-lg border border-border/60 bg-white/95 shadow-sm transition-all overflow-hidden",
+                                      "absolute z-10 flex h-full min-w-[100px] flex-col rounded-lg border-2 border-border/80 bg-white shadow-md transition-all overflow-hidden",
                                       isShortDuration ? "gap-1 px-2 py-1.5" : "gap-2 px-3 py-2",
                                       draggingAppointmentId === appointment.id
-                                        ? "ring-2 ring-primary/40 shadow-xl"
-                                        : "hover:shadow-lg",
+                                        ? "ring-2 ring-primary/60 shadow-xl border-primary"
+                                        : "hover:shadow-lg hover:border-primary/60",
                                     )}
                                     style={{ left, width }}
                                   >

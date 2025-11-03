@@ -31,7 +31,8 @@ import {
   Trash2,
   Star,
   Bell,
-  HomeIcon
+  HomeIcon,
+  Code
 } from "lucide-react"
 import useWorkspaceStore from "../../store/workspaceStore"
 
@@ -313,6 +314,21 @@ const DashboardSidebar = ({ activeView, onViewChange, onOpenCreateTeamSpotlight 
           </div>
         </div>
       </ScrollArea>
+
+      {/* Developers Section */}
+      <div className="border-t border-border/60 p-2">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start gap-2 text-sm h-8",
+            activeView === "developers" && "bg-primary/10 text-primary font-medium"
+          )}
+          onClick={() => handleViewChange("developers")}
+        >
+          <Code className="h-4 w-4" />
+          Developers
+        </Button>
+      </div>
 
     </aside>
   )

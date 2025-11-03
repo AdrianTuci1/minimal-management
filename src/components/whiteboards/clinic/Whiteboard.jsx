@@ -232,7 +232,7 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
 
   return (
     <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden bg-white height-[calc(100vh-200px)]">
-      <div className="height-[calc(100vh-64px)]">
+      <div className="height-[calc(100vh-64px)] bg-grid-dots">
       <TooltipProvider delayDuration={100}>
         <div className="relative flex-1 min-h-0 overflow-hidden">
           <div className="pointer-events-none absolute right-4 top-4 z-20 flex flex-col gap-2">
@@ -289,21 +289,20 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
                   style={{ gridTemplateColumns }}
                 >
                   <div className="relative">
-                    <div className="mb-9 flex items-center justify-between rounded-lg border border-dashed border-muted/70 bg-white/80 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <div className="mb-9 flex items-center justify-between rounded-lg border-2 border-dashed border-border/80 bg-white shadow-sm px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground">
                       <span>Timp</span>
                       <Clock3 className="h-4 w-4" />
                     </div>
                     <div
-                      className="relative rounded-lg border border-dashed border-muted/60 bg-white"
+                      className="relative rounded-lg border-2 border-dashed border-border/80 bg-white"
                       style={{ height: boardHeight }}
                     >
-                      <div className="absolute inset-0 rounded-lg bg-grid-dots opacity-30" />
                       {timelineMarks.map(({ minutes, top, isHour }) => (
                         <div
                           key={`timeline-${minutes}`}
                           className={cn(
-                            "absolute left-0 right-0 border-b border-border/30",
-                            isHour && "border-border/70",
+                            "absolute left-0 right-0 border-b border-border/50",
+                            isHour && "border-border",
                           )}
                           style={{ top }}
                         >
@@ -322,31 +321,30 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
 
                     return (
                       <div key={doctor.id} className="relative">
-                        <div className="mb-3 flex flex-col gap-1 rounded-lg border border-border/70 bg-white px-3 py-2 shadow-sm">
+                        <div className="mb-3 flex flex-col gap-1 rounded-lg border-2 border-border/80 bg-white px-3 py-2 shadow-md">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-semibold text-foreground">
                               {doctor.name}
                             </span>
                             <span
-                              className="h-2 w-2 rounded-full"
+                              className="h-2.5 w-2.5 rounded-full ring-2 ring-white shadow-sm"
                               style={{ backgroundColor: doctor.color }}
                             />
                           </div>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs font-medium text-muted-foreground">
                             {doctor.specialty}
                           </span>
                         </div>
 
                         <div
                           className={cn(
-                            "relative rounded-lg border border-border/60 bg-white transition",
+                            "relative rounded-lg border-2 border-border/70 bg-white transition",
                             draggingAppointmentId && columnAppointments.some((item) => item.id === draggingAppointmentId)
-                              ? "ring-2 ring-primary/25"
-                              : "hover:border-primary/35",
+                              ? "ring-2 ring-primary/40 border-primary/60"
+                              : "hover:border-primary/50",
                           )}
                           style={{ height: boardHeight }}
                         >
-                          <div className="pointer-events-none absolute inset-0 rounded-md bg-grid-dots opacity-30" />
 
                           {columnAppointments.map((appointment) => {
                             const top = ((appointment.start - DAY_START) / SLOT_INTERVAL) * SLOT_HEIGHT
@@ -360,11 +358,11 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
                                   <div
                                     data-appointment-id={appointment.id}
                                     className={cn(
-                                      "absolute left-2 right-2 z-10 flex h-full min-h-[60px] flex-col rounded-lg border border-border/60 bg-white/95 shadow-sm transition-all overflow-hidden",
+                                      "absolute left-2 right-2 z-10 flex h-full min-h-[60px] flex-col rounded-lg border-2 border-border/80 bg-white shadow-md transition-all overflow-hidden",
                                       isShortDuration ? "gap-1 px-2 py-1.5" : "gap-2 px-3 py-2",
                                       draggingAppointmentId === appointment.id
-                                        ? "ring-2 ring-primary/40 shadow-xl"
-                                        : "hover:shadow-lg",
+                                        ? "ring-2 ring-primary/60 shadow-xl border-primary"
+                                        : "hover:shadow-lg hover:border-primary/60",
                                     )}
                                     style={{ top, height }}
                                   >
