@@ -15,7 +15,7 @@ import { getTableColumns } from "@/config/tableColumns"
 import { getDrawerInputs } from "@/config/drawerInputs.jsx"
 import useAppStore from "@/store/appStore"
 import useWorkspaceConfig from "@/hooks/useWorkspaceConfig"
-import { User } from "lucide-react"
+import { User, Save, Trash2 } from "lucide-react"
 
 const statusVariants = {
   disponibil: "bg-emerald-100 text-emerald-700",
@@ -67,10 +67,55 @@ const DoctorsView = ({ doctors = [] }) => {
   }
 
   const handleFieldChange = (fieldId, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [fieldId]: value,
-    }))
+    if (isCreateMode) {
+      setFormData((prev) => ({
+        ...prev,
+        [fieldId]: value,
+      }))
+    } else {
+      // In edit mode, update the doctor directly
+      if (!drawerData || !drawerData.id) return
+      const updatedRows = rows.map((doctor) =>
+        doctor.id === drawerData.id
+          ? { ...doctor, [fieldId]: value }
+          : doctor
+      )
+      // Update drawer data
+      const updatedDoctor = updatedRows.find((d) => d.id === drawerData.id)
+      if (updatedDoctor) {
+        openDrawer("medici", { ...updatedDoctor, [fieldId]: value }, "edit")
+      }
+    }
+  }
+
+  const handleSaveDoctor = () => {
+    if (isCreateMode) {
+      const newDoctor = {
+        id: `dr-${Date.now()}`,
+        name: formData.name || "",
+        specialty: formData.specialty || "",
+        color: formData.color || "#6366F1",
+        status: "disponibil",
+        patientsToday: 0,
+        activeTreatments: 0,
+        nextSlot: "",
+        cabinet: formData.cabinet || "",
+      }
+      // Note: In a real app, this would update the store/state
+      closeDrawer()
+      setFormData({})
+    } else {
+      closeDrawer()
+    }
+  }
+
+  const handleDeleteDoctor = () => {
+    if (!drawerData || !drawerData.id) return
+    
+    if (window.confirm("Sigur doriți să ștergeți acest medic?")) {
+      // Note: In a real app, this would update the store/state
+      closeDrawer()
+    }
   }
 
   return (
@@ -205,6 +250,34 @@ const DoctorsView = ({ doctors = [] }) => {
             : undefined
         }
         defaultTab="details"
+        actions={
+          isCreateMode
+            ? [
+                {
+                  id: "save",
+                  label: "Salvează",
+                  icon: Save,
+                  variant: "default",
+                  onClick: handleSaveDoctor,
+                },
+              ]
+            : [
+                {
+                  id: "save",
+                  label: "Salvează",
+                  icon: Save,
+                  variant: "default",
+                  onClick: handleSaveDoctor,
+                },
+                {
+                  id: "delete",
+                  label: "Șterge",
+                  icon: Trash2,
+                  variant: "destructive",
+                  onClick: handleDeleteDoctor,
+                },
+              ]
+        }
       >
         {isCreateMode && (
           <DrawerContent>

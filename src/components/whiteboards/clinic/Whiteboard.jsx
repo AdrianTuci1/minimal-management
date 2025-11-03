@@ -33,7 +33,7 @@ const statusStyles = {
   "nouă": "bg-blue-500/10 text-blue-600",
 }
 
-const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
+const Whiteboard = ({ doctors, appointments, onAppointmentChange, onAppointmentDoubleClick }) => {
   const boardRef = useRef(null)
   const [transform, setTransform] = useState({ scale: 1, translate: { x: 24, y: 24 } })
   const [dragState, setDragState] = useState(null)
@@ -46,6 +46,8 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
   const doctorColumnRefs = useRef({})
   const appointmentRefs = useRef({})
   const hasAnimatedRef = useRef(false)
+  const clickStartRef = useRef(null)
+  const clickAppointmentRef = useRef(null)
   const totalSlots = useMemo(() => (DAY_END - DAY_START) / SLOT_INTERVAL, [])
   const boardHeight = totalSlots * SLOT_HEIGHT
   const draggingAppointmentId = dragState?.type === "appointment" ? dragState.id : null
@@ -291,6 +293,10 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
         return
       }
 
+      // Track click start position and appointment for potential click detection
+      clickStartRef.current = { x: event.clientX, y: event.clientY }
+      clickAppointmentRef.current = appointmentId
+
       const { x, y } = toBoardCoords(event.clientX, event.clientY)
       const doctorIndex = doctors.findIndex((doctor) => doctor.id === appointment.doctorId)
       const offsetX = x - doctorIndex * COLUMN_WIDTH
@@ -306,6 +312,8 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
         duration: appointment.duration,
       })
     } else {
+      clickStartRef.current = null
+      clickAppointmentRef.current = null
       setDragState({
         type: "pan",
         pointerId: event.pointerId,
@@ -317,6 +325,15 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
 
   const handlePointerMove = (event) => {
     if (!dragState || dragState.pointerId !== event.pointerId) return
+
+    // If mouse moved significantly, it's a drag, not a click
+    if (clickStartRef.current) {
+      const deltaX = Math.abs(event.clientX - clickStartRef.current.x)
+      const deltaY = Math.abs(event.clientY - clickStartRef.current.y)
+      if (deltaX > 5 || deltaY > 5) {
+        clickAppointmentRef.current = null // Clear appointment ref if dragging
+      }
+    }
 
     event.preventDefault()
 
@@ -365,10 +382,27 @@ const Whiteboard = ({ doctors, appointments, onAppointmentChange }) => {
   const endDrag = (event) => {
     const element = boardRef.current
     if (!element) return
+    
+    // Check if this was a click (not a drag) on an appointment
+    if (event && clickAppointmentRef.current && dragState?.type === "appointment") {
+      const appointmentId = clickAppointmentRef.current
+      const appointment = appointments.find((item) => item.id === appointmentId)
+      
+      // If mouse didn't move much, it was a click - open drawer
+      if (onAppointmentDoubleClick && appointment) {
+        // Use setTimeout to ensure this happens after drag state is cleared
+        setTimeout(() => {
+          onAppointmentDoubleClick(appointment)
+        }, 0)
+      }
+    }
+    
     if (event) {
       element.releasePointerCapture(event.pointerId)
     }
     setDragState(null)
+    clickStartRef.current = null
+    clickAppointmentRef.current = null
     // Resetăm flag-ul după un mic delay pentru a preveni click-ul care urmează
     setTimeout(() => {
       isMiddleButtonRef.current = false

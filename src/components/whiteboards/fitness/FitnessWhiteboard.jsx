@@ -49,12 +49,14 @@ const statusStyles = {
   "absent": "bg-red-500/10 text-red-600",
 }
 
-const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChange }) => {
+const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChange, onAppointmentDoubleClick }) => {
   const boardRef = useRef(null)
   const [transform, setTransform] = useState({ scale: 1, translate: { x: 24, y: 24 } })
   const [dragState, setDragState] = useState(null)
   const isMiddleButtonRef = useRef(false)
   const [isMiddleButton, setIsMiddleButton] = useState(false)
+  const clickStartRef = useRef(null)
+  const clickAppointmentRef = useRef(null)
   const zoomControlsRef = useRef(null)
   const clientsHeaderRef = useRef(null)
   const timelineHeaderRef = useRef(null)
@@ -306,6 +308,10 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
         return
       }
 
+      // Track click start position and appointment for potential click detection
+      clickStartRef.current = { x: event.clientX, y: event.clientY }
+      clickAppointmentRef.current = appointmentId
+
       const { x, y } = toBoardCoords(event.clientX, event.clientY)
       const clientIndex = clients.findIndex((client) => client.id === appointment.clientId)
       const startMinutes = appointment.start || appointment.startMinutes || DAY_START
@@ -322,6 +328,8 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
         duration: appointment.duration || 60, // durata în minute
       })
     } else {
+      clickStartRef.current = null
+      clickAppointmentRef.current = null
       setDragState({
         type: "pan",
         pointerId: event.pointerId,
@@ -333,6 +341,15 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
 
   const handlePointerMove = (event) => {
     if (!dragState || dragState.pointerId !== event.pointerId) return
+
+    // If mouse moved significantly, it's a drag, not a click
+    if (clickStartRef.current) {
+      const deltaX = Math.abs(event.clientX - clickStartRef.current.x)
+      const deltaY = Math.abs(event.clientY - clickStartRef.current.y)
+      if (deltaX > 5 || deltaY > 5) {
+        clickAppointmentRef.current = null // Clear appointment ref if dragging
+      }
+    }
 
     event.preventDefault()
 
@@ -390,10 +407,27 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
   const endDrag = (event) => {
     const element = boardRef.current
     if (!element) return
+    
+    // Check if this was a click (not a drag) on an appointment
+    if (event && clickAppointmentRef.current && dragState?.type === "appointment") {
+      const appointmentId = clickAppointmentRef.current
+      const appointment = appointments.find((item) => item.id === appointmentId)
+      
+      // If mouse didn't move much, it was a click - open drawer
+      if (onAppointmentDoubleClick && appointment) {
+        // Use setTimeout to ensure this happens after drag state is cleared
+        setTimeout(() => {
+          onAppointmentDoubleClick(appointment)
+        }, 0)
+      }
+    }
+    
     if (event) {
       element.releasePointerCapture(event.pointerId)
     }
     setDragState(null)
+    clickStartRef.current = null
+    clickAppointmentRef.current = null
     // Resetăm flag-ul după un mic delay pentru a preveni click-ul care urmează
     setTimeout(() => {
       isMiddleButtonRef.current = false

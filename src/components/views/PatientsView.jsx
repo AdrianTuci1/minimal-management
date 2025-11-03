@@ -7,7 +7,7 @@ import { getDrawerInputs } from "@/config/drawerInputs.jsx"
 import useAppStore from "@/store/appStore"
 import useWorkspaceConfig from "@/hooks/useWorkspaceConfig"
 import { getDemoPatients } from "@/config/demoData"
-import { User, Calendar, FileText } from "lucide-react"
+import { User, Calendar, FileText, Save, Trash2 } from "lucide-react"
 
 const PatientsView = () => {
   const { workspaceType, getLabel } = useWorkspaceConfig()
@@ -16,11 +16,14 @@ const PatientsView = () => {
   const { isDrawerOpen, drawerData, drawerViewId, drawerMode, openDrawer, closeDrawer } = useAppStore()
   
   const [formData, setFormData] = useState({})
+  const [patients, setPatients] = useState(() => getDemoPatients(workspaceType))
 
   const isCreateMode = drawerMode === "create"
   const displayData = isCreateMode ? formData : drawerData
 
-  const patients = useMemo(() => getDemoPatients(workspaceType), [workspaceType])
+  useEffect(() => {
+    setPatients(getDemoPatients(workspaceType))
+  }, [workspaceType])
 
   useEffect(() => {
     if (isCreateMode && isDrawerOpen) {
@@ -33,10 +36,55 @@ const PatientsView = () => {
   }
 
   const handleFieldChange = (fieldId, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [fieldId]: value,
-    }))
+    if (isCreateMode) {
+      setFormData((prev) => ({
+        ...prev,
+        [fieldId]: value,
+      }))
+    } else {
+      // In edit mode, update the patient directly
+      if (!drawerData || !drawerData.email) return
+      setPatients((current) =>
+        current.map((patient) =>
+          patient.email === drawerData.email
+            ? { ...patient, [fieldId]: value }
+            : patient
+        )
+      )
+      // Update drawer data
+      const updatedPatient = patients.find((p) => p.email === drawerData.email)
+      if (updatedPatient) {
+        openDrawer("pacienti", { ...updatedPatient, [fieldId]: value }, "edit")
+      }
+    }
+  }
+
+  const handleSavePatient = () => {
+    if (isCreateMode) {
+      const newPatient = {
+        email: formData.email || `patient-${Date.now()}@example.com`,
+        name: formData.name || "",
+        phone: formData.phone || "",
+        age: formData.age || "",
+        labels: formData.labels ? formData.labels.split(", ") : [],
+        source: formData.source || "",
+        dePlata: "0 RON",
+      }
+      setPatients((current) => [...current, newPatient])
+      closeDrawer()
+      setFormData({})
+    } else {
+      closeDrawer()
+    }
+  }
+
+  const handleDeletePatient = () => {
+    if (!drawerData || !drawerData.email) return
+    
+    if (window.confirm("Sigur doriți să ștergeți acest pacient?")) {
+      setPatients((current) => current.filter((p) => p.email !== drawerData.email))
+      closeDrawer()
+    }
   }
 
   return (
@@ -179,6 +227,34 @@ const PatientsView = () => {
             : undefined
         }
         defaultTab="details"
+        actions={
+          isCreateMode
+            ? [
+                {
+                  id: "save",
+                  label: "Salvează",
+                  icon: Save,
+                  variant: "default",
+                  onClick: handleSavePatient,
+                },
+              ]
+            : [
+                {
+                  id: "save",
+                  label: "Salvează",
+                  icon: Save,
+                  variant: "default",
+                  onClick: handleSavePatient,
+                },
+                {
+                  id: "delete",
+                  label: "Șterge",
+                  icon: Trash2,
+                  variant: "destructive",
+                  onClick: handleDeletePatient,
+                },
+              ]
+        }
       >
         {isCreateMode && (
           <DrawerContent>

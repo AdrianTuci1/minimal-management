@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 
 interface DrawerAction {
   id: string
-  label: string
+  label?: string
+  icon?: React.ComponentType<{ className?: string }>
   variant?: "default" | "outline" | "destructive" | "secondary" | "ghost" | "link"
   onClick: () => void
 }
@@ -123,16 +124,20 @@ const Drawer = React.forwardRef<HTMLDivElement, DrawerProps>(
             {hasActions && (
               <div className="border-t border-border px-6 py-4">
                 <div className="flex gap-2">
-                  {actions.map((action) => (
-                    <Button
-                      key={action.id}
-                      variant={action.variant || "default"}
-                      onClick={action.onClick}
-                      className="flex-1"
-                    >
-                      {action.label}
-                    </Button>
-                  ))}
+                  {actions.map((action) => {
+                    const Icon = action.icon
+                    return (
+                      <Button
+                        key={action.id}
+                        variant={action.variant || "default"}
+                        onClick={action.onClick}
+                        className={Icon ? "aspect-square h-10 w-10 p-0" : "flex-1"}
+                        title={action.label}
+                      >
+                        {Icon ? <Icon className="h-5 w-5" /> : action.label}
+                      </Button>
+                    )
+                  })}
                 </div>
               </div>
             )}

@@ -61,7 +61,7 @@ const Sidebar = ({
       <div className="flex h-full w-full flex-col">
         <div
           className={cn(
-            "flex items-center gap-2 border-b border-border/60 px-4 py-2",
+            "flex items-center gap-2 border-b border-border/60 px-4 py-2.5",
             isCollapsed ? "justify-center py-3" : "justify-between",
           )}
         >

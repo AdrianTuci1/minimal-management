@@ -8,7 +8,7 @@ import useAppStore from "@/store/appStore"
 import useWorkspaceConfig from "@/hooks/useWorkspaceConfig"
 import { getDemoTreatments } from "@/config/demoData"
 import { cn } from "@/lib/utils"
-import { FileText } from "lucide-react"
+import { FileText, Save, Trash2 } from "lucide-react"
 
 const statusTone = {
   Disponibil: "bg-emerald-500/10 text-emerald-600",
@@ -23,11 +23,14 @@ const TreatmentsView = () => {
   const { isDrawerOpen, drawerData, drawerViewId, drawerMode, openDrawer, closeDrawer } = useAppStore()
   
   const [formData, setFormData] = useState({})
+  const [treatments, setTreatments] = useState(() => getDemoTreatments(workspaceType))
 
   const isCreateMode = drawerMode === "create"
   const displayData = isCreateMode ? formData : drawerData
 
-  const treatments = useMemo(() => getDemoTreatments(workspaceType), [workspaceType])
+  useEffect(() => {
+    setTreatments(getDemoTreatments(workspaceType))
+  }, [workspaceType])
 
   useEffect(() => {
     if (isCreateMode && isDrawerOpen) {
@@ -40,10 +43,54 @@ const TreatmentsView = () => {
   }
 
   const handleFieldChange = (fieldId, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [fieldId]: value,
-    }))
+    if (isCreateMode) {
+      setFormData((prev) => ({
+        ...prev,
+        [fieldId]: value,
+      }))
+    } else {
+      // In edit mode, update the treatment directly
+      if (!drawerData || !drawerData.code) return
+      setTreatments((current) =>
+        current.map((treatment) =>
+          treatment.code === drawerData.code
+            ? { ...treatment, [fieldId]: value }
+            : treatment
+        )
+      )
+      // Update drawer data
+      const updatedTreatment = treatments.find((t) => t.code === drawerData.code)
+      if (updatedTreatment) {
+        openDrawer("tratamente", { ...updatedTreatment, [fieldId]: value }, "edit")
+      }
+    }
+  }
+
+  const handleSaveTreatment = () => {
+    if (isCreateMode) {
+      const newTreatment = {
+        code: formData.code || `SRV-${Date.now()}`,
+        name: formData.name || "",
+        duration: formData.duration || "",
+        doctor: formData.doctor || "",
+        price: formData.price || "",
+        status: formData.status || "Disponibil",
+      }
+      setTreatments((current) => [...current, newTreatment])
+      closeDrawer()
+      setFormData({})
+    } else {
+      closeDrawer()
+    }
+  }
+
+  const handleDeleteTreatment = () => {
+    if (!drawerData || !drawerData.code) return
+    
+    if (window.confirm("Sigur doriți să ștergeți acest tratament?")) {
+      setTreatments((current) => current.filter((t) => t.code !== drawerData.code))
+      closeDrawer()
+    }
   }
 
   return (
@@ -140,6 +187,34 @@ const TreatmentsView = () => {
             : undefined
         }
         defaultTab="details"
+        actions={
+          isCreateMode
+            ? [
+                {
+                  id: "save",
+                  label: "Salvează",
+                  icon: Save,
+                  variant: "default",
+                  onClick: handleSaveTreatment,
+                },
+              ]
+            : [
+                {
+                  id: "save",
+                  label: "Salvează",
+                  icon: Save,
+                  variant: "default",
+                  onClick: handleSaveTreatment,
+                },
+                {
+                  id: "delete",
+                  label: "Șterge",
+                  icon: Trash2,
+                  variant: "destructive",
+                  onClick: handleDeleteTreatment,
+                },
+              ]
+        }
       >
         {isCreateMode && (
           <DrawerContent>

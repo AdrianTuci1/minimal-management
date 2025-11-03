@@ -146,6 +146,99 @@ export const drawerInputs = {
       editable: true,
     },
   ],
+  programari: (workspaceType = "clinic") => {
+    const type = workspaceType === "fitness" ? "fitness" : "clinic"
+    
+    if (type === "fitness") {
+      return [
+        {
+          id: "clientName",
+          label: "Client",
+          type: "text",
+          accessor: (row) => row?.clientName || "",
+          editable: true,
+        },
+        {
+          id: "training",
+          label: "Antrenament",
+          type: "text",
+          accessor: (row) => row?.training || "",
+          editable: true,
+        },
+        {
+          id: "start",
+          label: "Ora început",
+          type: "text",
+          accessor: (row) => {
+            if (!row?.start && !row?.startMinutes) return ""
+            const minutes = row.start || row.startMinutes
+            const hours = Math.floor(minutes / 60)
+            const mins = minutes % 60
+            return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`
+          },
+          editable: true,
+        },
+        {
+          id: "duration",
+          label: "Durată (minute)",
+          type: "number",
+          accessor: (row) => row?.duration || "",
+          editable: true,
+        },
+        {
+          id: "status",
+          label: "Status",
+          type: "text",
+          accessor: (row) => row?.status || "",
+          editable: true,
+        },
+      ]
+    }
+    
+    // Clinic (default)
+    return [
+      {
+        id: "patient",
+        label: "Pacient",
+        type: "text",
+        accessor: (row) => row?.patient || "",
+        editable: true,
+      },
+      {
+        id: "treatment",
+        label: "Tratament",
+        type: "text",
+        accessor: (row) => row?.treatment || "",
+        editable: true,
+      },
+      {
+        id: "start",
+        label: "Ora început",
+        type: "text",
+        accessor: (row) => {
+          if (!row?.start) return ""
+          const hours = Math.floor(row.start / 60)
+          const mins = row.start % 60
+          return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`
+        },
+        editable: true,
+      },
+      {
+        id: "duration",
+        label: "Durată (minute)",
+        type: "number",
+        accessor: (row) => row?.duration || "",
+        editable: true,
+      },
+      {
+        id: "status",
+        label: "Status",
+        type: "text",
+        accessor: (row) => row?.status || "",
+        editable: true,
+      },
+    ]
+  },
 }
 
 // Get drawer inputs for a specific view
