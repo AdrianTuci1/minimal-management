@@ -147,7 +147,47 @@ export const drawerInputs = {
     },
   ],
   programari: (workspaceType = "clinic") => {
-    const type = workspaceType === "fitness" ? "fitness" : "clinic"
+    const type = workspaceType === "fitness" ? "fitness" : workspaceType === "hotel" ? "hotel" : "clinic"
+    
+    if (type === "hotel") {
+      return [
+        {
+          id: "guest",
+          label: "Oaspete",
+          type: "text",
+          accessor: (row) => row?.guest || "",
+          editable: true,
+        },
+        {
+          id: "roomId",
+          label: "Cameră",
+          type: "text",
+          accessor: (row) => row?.roomId || "",
+          editable: true,
+        },
+        {
+          id: "startDate",
+          label: "Data început",
+          type: "date",
+          accessor: (row) => row?.startDate || row?.date || "",
+          editable: true,
+        },
+        {
+          id: "durationDays",
+          label: "Durată (zile)",
+          type: "number",
+          accessor: (row) => row?.durationDays || row?.duration || "",
+          editable: true,
+        },
+        {
+          id: "status",
+          label: "Status",
+          type: "text",
+          accessor: (row) => row?.status || "",
+          editable: true,
+        },
+      ]
+    }
     
     if (type === "fitness") {
       return [

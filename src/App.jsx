@@ -2,6 +2,16 @@ import { BrowserRouter, Routes, Route, useParams } from "react-router-dom"
 import Dashboard from "./components/dashboard/Dashboard"
 import WorkspaceView from "./components/views/WorkspaceView"
 import ClientView from "./components/views/ClientView"
+import PublicServicesView from "./components/views/PublicServicesView"
+import RequestAppointmentView from "./components/views/RequestAppointmentView"
+import BecomeClientView from "./components/views/BecomeClientView"
+import BookReservationView from "./components/views/BookReservationView"
+import PaymentDetailsView from "./components/views/PaymentDetailsView"
+import ClientAccessInstructionsView from "./components/views/ClientAccessInstructionsView"
+import SubscriptionPaymentView from "./components/views/SubscriptionPaymentView"
+import ConfirmSubscriptionView from "./components/views/ConfirmSubscriptionView"
+import ClientAccessView from "./components/views/ClientAccessView"
+import ClientLoginView from "./components/views/ClientLoginView"
 import useWorkspaceStore from "./store/workspaceStore"
 import { GlobalDropdownBackdrop } from "./components/ui/dropdown-menu"
 import { useMemo, useEffect } from "react"
@@ -46,15 +56,75 @@ function App() {
             <GlobalDropdownBackdrop />
           </>
         } />
-        <Route path="/workspace/:workspaceId" element={
+        <Route path="/workspace/:workspaceId/public" element={
           <>
-            <WorkspaceViewWrapper />
+            <ClientView />
             <GlobalDropdownBackdrop />
           </>
         } />
-        <Route path="/workspace/:workspaceId/client" element={
+        <Route path="/workspace/:workspaceId/public/services" element={
           <>
-            <ClientView />
+            <PublicServicesView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId/public/request-appointment" element={
+          <>
+            <RequestAppointmentView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId/public/become-client" element={
+          <>
+            <BecomeClientView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId/public/book-reservation" element={
+          <>
+            <BookReservationView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId/public/payment-details" element={
+          <>
+            <PaymentDetailsView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId/public/subscription-payment" element={
+          <>
+            <SubscriptionPaymentView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId/public/client-access-instructions" element={
+          <>
+            <ClientAccessInstructionsView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId/public/confirm-subscription/:token" element={
+          <>
+            <ConfirmSubscriptionView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId/client-login" element={
+          <>
+            <ClientLoginView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId/:clientId" element={
+          <>
+            <ClientAccessView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId" element={
+          <>
+            <WorkspaceViewWrapper />
             <GlobalDropdownBackdrop />
           </>
         } />

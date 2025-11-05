@@ -103,7 +103,7 @@ const Sidebar = ({
                       <span>Meniu general</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => navigate(`/workspace/${workspace.id}/client`)}
+                      onClick={() => navigate(`/workspace/${workspace.id}/public`)}
                     >
                       <ExternalLink className="h-4 w-4" />
                       <span>Pagina client</span>

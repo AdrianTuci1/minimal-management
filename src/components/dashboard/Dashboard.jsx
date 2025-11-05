@@ -22,6 +22,7 @@ import GroupsView from "./views/GroupsView"
 import DraftsView from "./views/DraftsView"
 import AllProjectsView from "./views/AllProjectsView"
 import GroupView from "./views/GroupView"
+import ServicesView from "./views/ServicesView"
 
 const SUBSCRIPTION_PLANS = {
   basic: { name: "Basic", maxWorkspaces: 1, price: 50 },
@@ -277,11 +278,12 @@ function Dashboard() {
       />
 
       <div className="flex-1 flex flex-col bg-background h-screen overflow-hidden">
-        {/* Header with Actions - Hidden for drafts, recents, and groups */}
+        {/* Header with Actions - Hidden for drafts, recents, groups, and services */}
         {activeView !== "drafts" && 
          !activeView.startsWith("group-drafts-") && 
          activeView !== "recents" && 
-         activeView !== "groups" && (
+         activeView !== "groups" &&
+         activeView !== "services" && (
           <DashboardHeader
             activeView={activeView}
             onViewChange={handleViewChange}
@@ -301,6 +303,10 @@ function Dashboard() {
               onSelectWorkspace={handleSelectWorkspace}
               onViewChange={handleViewChange}
             />
+          )}
+
+          {activeView === "services" && (
+            <ServicesView />
           )}
 
           {(activeView === "home" || activeView === "all-projects") && (
@@ -324,6 +330,7 @@ function Dashboard() {
           {activeView !== "drafts" && 
            activeView !== "groups" && 
            activeView !== "recents" && 
+           activeView !== "services" &&
            activeView !== "all-projects" && 
            activeView !== "home" && 
            !activeView.startsWith("group-drafts-") && (

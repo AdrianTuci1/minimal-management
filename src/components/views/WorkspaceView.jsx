@@ -271,6 +271,11 @@ function WorkspaceView({ workspace }) {
         updatedValue = parseInt(value, 10) || 0
       }
 
+      // Parse durationDays to number for hotel
+      if (fieldId === "durationDays") {
+        updatedValue = parseInt(value, 10) || 1
+      }
+
       // For fitness, also update startMinutes when start changes
       if (fieldId === "start" && workspaceType === "fitness") {
         setFormData((prev) => ({
@@ -289,6 +294,29 @@ function WorkspaceView({ workspace }) {
 
     // Edit mode - existing logic
     if (!drawerData) return
+    
+    // For hotel reservations, update reservations array instead of appointments
+    if (workspaceType === "hotel") {
+      let updatedValue = value
+      
+      // Parse durationDays to number for hotel
+      if (fieldId === "durationDays") {
+        updatedValue = parseInt(value, 10) || 1
+      }
+      
+      const nextValues = {
+        [fieldId]: updatedValue,
+      }
+      
+      handleReservationChange(drawerData.id, nextValues)
+      
+      // Update drawerData in store to reflect changes immediately
+      const updatedReservation = reservations.find((res) => res.id === drawerData.id)
+      if (updatedReservation) {
+        openDrawer("programari", { ...updatedReservation, ...nextValues }, "edit")
+      }
+      return
+    }
 
     // Parse time format (HH:MM) to minutes for start field
     let updatedValue = value
@@ -323,12 +351,30 @@ function WorkspaceView({ workspace }) {
       openDrawer("programari", { ...updatedAppointment, ...nextValues }, "edit")
     }
   }
+  
+  const handleDeleteReservation = () => {
+    if (!drawerData || !drawerData.id) return
+    
+    if (window.confirm("Sigur doriți să ștergeți această rezervare?")) {
+      setReservations((current) => {
+        const updated = current.filter((res) => res.id !== drawerData.id)
+        return updated
+      })
+      closeDrawer()
+    }
+  }
 
   const handleSaveAppointment = () => {
     const isCreateMode = drawerMode === "create"
     
     if (isCreateMode) {
-      // Create new appointment
+      // For hotel reservations, use handleSaveReservation
+      if (workspaceType === "hotel") {
+        handleSaveReservation()
+        return
+      }
+      
+      // Create new appointment for clinic/fitness
       const newAppointment = {
         id: `appt-${Date.now()}`,
         ...formData,
@@ -367,12 +413,17 @@ function WorkspaceView({ workspace }) {
     }
   }
 
-  // Reset formData when drawer opens in create mode
+  // Reset formData when drawer opens in create mode, or populate with initial data
   useEffect(() => {
     if (drawerMode === "create" && isDrawerOpen && drawerViewId === "programari") {
-      setFormData({})
+      // If drawerData contains initial data (from empty area click), use it
+      if (drawerData && Object.keys(drawerData).length > 0) {
+        setFormData(drawerData)
+      } else {
+        setFormData({})
+      }
     }
-  }, [drawerMode, isDrawerOpen, drawerViewId])
+  }, [drawerMode, isDrawerOpen, drawerViewId, drawerData])
 
   const handleReservationChange = (reservationId, nextValues) => {
     setReservations((current) =>
@@ -385,6 +436,27 @@ function WorkspaceView({ workspace }) {
           : reservation,
       ),
     )
+  }
+
+  const handleSaveReservation = () => {
+    const isCreateMode = drawerMode === "create"
+    
+    if (isCreateMode && workspaceType === "hotel") {
+      // Create new hotel reservation
+      const newReservation = {
+        id: `res-${Date.now()}`,
+        ...formData,
+        // Set default status if not provided
+        status: formData.status || "nouă",
+      }
+      
+      setReservations((current) => {
+        const updated = [...current, newReservation]
+        return updated
+      })
+      closeDrawer()
+      setFormData({})
+    }
   }
 
   const handleOpenSpotlight = () => {
@@ -461,6 +533,15 @@ function WorkspaceView({ workspace }) {
 
   const topBarActions = useMemo(() => {
     switch (activeMenu) {
+      case "programari":
+        return [
+          {
+            id: "add-appointment",
+            label: "Adaugă programare",
+            variant: "default",
+            onClick: () => openDrawer("programari", null, "create"),
+          },
+        ]
       case "pacienti":
         return [
           {
@@ -614,7 +695,7 @@ function WorkspaceView({ workspace }) {
             label: "Șterge",
             icon: Trash2,
             variant: "destructive",
-            onClick: handleDeleteAppointment,
+            onClick: workspaceType === "hotel" ? handleDeleteReservation : handleDeleteAppointment,
           })
         }
         

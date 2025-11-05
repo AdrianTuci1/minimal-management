@@ -72,6 +72,8 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
   const [dragState, setDragState] = useState(null)
   const isMiddleButtonRef = useRef(false)
   const [isMiddleButton, setIsMiddleButton] = useState(false)
+  const clickStartRef = useRef(null)
+  const clickReservationRef = useRef(null)
   const zoomControlsRef = useRef(null)
   const roomsHeaderRef = useRef(null)
   const timelineHeaderRef = useRef(null)
@@ -351,6 +353,10 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
         return
       }
 
+      // Track click start position and reservation for potential click detection
+      clickStartRef.current = { x: event.clientX, y: event.clientY }
+      clickReservationRef.current = reservationId
+
       const { x, y } = toBoardCoords(event.clientX, event.clientY)
       const roomIndex = rooms.findIndex((room) => room.id === reservation.roomId)
       const reservationStartDate = reservation.startDate || reservation.date || reservation.start
@@ -367,6 +373,8 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
         duration: reservation.duration || reservation.durationDays || 1,
       })
     } else {
+      clickStartRef.current = null
+      clickReservationRef.current = null
       setDragState({
         type: "pan",
         pointerId: event.pointerId,
@@ -378,6 +386,15 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
 
   const handlePointerMove = (event) => {
     if (!dragState || dragState.pointerId !== event.pointerId) return
+
+    // If mouse moved significantly, it's a drag, not a click
+    if (clickStartRef.current) {
+      const deltaX = Math.abs(event.clientX - clickStartRef.current.x)
+      const deltaY = Math.abs(event.clientY - clickStartRef.current.y)
+      if (deltaX > 5 || deltaY > 5) {
+        clickReservationRef.current = null // Clear reservation ref if dragging
+      }
+    }
 
     event.preventDefault()
 
@@ -435,10 +452,13 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
   const endDrag = (event) => {
     const element = boardRef.current
     if (!element) return
+    
     if (event) {
       element.releasePointerCapture(event.pointerId)
     }
     setDragState(null)
+    clickStartRef.current = null
+    clickReservationRef.current = null
     // Resetăm flag-ul după un mic delay pentru a preveni click-ul care urmează
     setTimeout(() => {
       isMiddleButtonRef.current = false
@@ -665,7 +685,6 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
                             height: ROW_HEIGHT 
                           }}
                         >
-
                           {rowReservations.map((reservation) => {
                             const reservationStartDate = reservation.startDate || reservation.date || reservation.start
                             const dayIndex = getDayIndex(reservationStartDate)

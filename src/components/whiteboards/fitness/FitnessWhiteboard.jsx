@@ -413,8 +413,14 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
       const appointmentId = clickAppointmentRef.current
       const appointment = appointments.find((item) => item.id === appointmentId)
       
+      // Check if mouse moved significantly
+      const moved = clickStartRef.current && (
+        Math.abs(event.clientX - clickStartRef.current.x) > 5 ||
+        Math.abs(event.clientY - clickStartRef.current.y) > 5
+      )
+      
       // If mouse didn't move much, it was a click - open drawer
-      if (onAppointmentDoubleClick && appointment) {
+      if (!moved && onAppointmentDoubleClick && appointment) {
         // Use setTimeout to ensure this happens after drag state is cleared
         setTimeout(() => {
           onAppointmentDoubleClick(appointment)
@@ -654,7 +660,6 @@ const FitnessWhiteboard = ({ clients = [], appointments = [], onAppointmentChang
                             height: ROW_HEIGHT 
                           }}
                         >
-
                           {rowAppointments.map((appointment) => {
                             const startMinutes = appointment.start || appointment.startMinutes || DAY_START
                             const slotIndex = getSlotIndex(startMinutes)

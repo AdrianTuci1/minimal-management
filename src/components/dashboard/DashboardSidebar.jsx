@@ -32,7 +32,8 @@ import {
   Star,
   Bell,
   HomeIcon,
-  Code
+  Code,
+  Briefcase
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import useWorkspaceStore from "../../store/workspaceStore"
@@ -145,6 +146,17 @@ const DashboardSidebar = ({ activeView, onViewChange, onOpenCreateTeamSpotlight 
           >
             <HomeIcon className="h-4 w-4" />
             Home
+          </Button>
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start gap-2 text-sm h-8",
+              activeView === "services" && "bg-primary/10 text-primary font-medium"
+            )}
+            onClick={() => handleViewChange("services")}
+          >
+            <Briefcase className="h-4 w-4" />
+            Servicii
           </Button>
           <Button
             variant="ghost"
