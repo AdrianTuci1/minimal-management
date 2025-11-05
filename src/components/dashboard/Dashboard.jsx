@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react"
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -30,6 +31,7 @@ const SUBSCRIPTION_PLANS = {
 
 
 function Dashboard() {
+  const navigate = useNavigate()
   const { 
     groups, 
     selectedGroupId, 
@@ -193,6 +195,7 @@ function Dashboard() {
 
   const handleSelectWorkspace = (workspaceId) => {
     selectWorkspace(workspaceId)
+    navigate(`/workspace/${workspaceId}`)
   }
 
   const handleCreateDraft = () => {

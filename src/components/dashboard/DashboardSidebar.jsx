@@ -34,9 +34,11 @@ import {
   HomeIcon,
   Code
 } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import useWorkspaceStore from "../../store/workspaceStore"
 
 const DashboardSidebar = ({ activeView, onViewChange, onOpenCreateTeamSpotlight }) => {
+  const navigate = useNavigate()
   const { 
     groups, 
     selectedGroupId,
@@ -300,7 +302,10 @@ const DashboardSidebar = ({ activeView, onViewChange, onOpenCreateTeamSpotlight 
                   key={workspace.id}
                   variant="ghost"
                   className="w-full justify-start gap-2 text-sm h-8 pl-2"
-                  onClick={() => selectWorkspace(workspace.id)}
+                  onClick={() => {
+                    selectWorkspace(workspace.id)
+                    navigate(`/workspace/${workspace.id}`)
+                  }}
                 >
                   <Folder className="h-3.5 w-3.5" />
                   <span className="truncate text-xs">{workspace.name}</span>

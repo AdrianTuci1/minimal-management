@@ -3,6 +3,12 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Activity,
   CalendarDays,
   Home,
@@ -14,7 +20,10 @@ import {
   Users,
   Wand2,
   Zap,
+  ExternalLink,
+  LayoutDashboard,
 } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import useWorkspaceStore from "../store/workspaceStore"
 import useWorkspaceConfig from "../hooks/useWorkspaceConfig"
 import { useMemo } from "react"
@@ -40,6 +49,7 @@ const Sidebar = ({
   isCollapsed = false,
   onToggleCollapse,
 }) => {
+  const navigate = useNavigate()
   const { goToGroupView } = useWorkspaceStore()
   const { menuItems: configMenuItems } = useWorkspaceConfig()
 
@@ -68,18 +78,38 @@ const Sidebar = ({
           <div className="flex items-center gap-2">
             {!isCollapsed ? (
               workspace ? (
-                <Button
-                  variant="ghost"
-                  className="flex items-center gap-3 rounded-md px-1 py-1 text-sm font-medium text-foreground transition hover:text-primary"
-                  onClick={goToGroupView}
-                >
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
-                    {workspace.name.charAt(0).toUpperCase()}
-                  </span>
-                  <span className="flex flex-col text-left">
-                    <span>{workspace.name}</span>
-                  </span>
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-3 rounded-md px-1 py-1 text-sm font-medium text-foreground transition hover:text-primary"
+                    >
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
+                        {workspace.name.charAt(0).toUpperCase()}
+                      </span>
+                      <span className="flex flex-col text-left">
+                        <span>{workspace.name}</span>
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        goToGroupView()
+                        navigate("/")
+                      }}
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span>Meniu general</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate(`/workspace/${workspace.id}/client`)}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>Pagina client</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <div className="flex items-center gap-3 px-1 py-1">
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
@@ -102,61 +132,63 @@ const Sidebar = ({
         </div>
 
         <ScrollArea className="flex-1">
-          <div className="space-y-5 py-2">
-            <div className="flex items-center justify-center px-2">
-            {!isCollapsed ? (
-              <Button
-                variant="outline"
-                className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
-                onClick={onOpenSpotlight}
-              >
-                <span className="flex items-center gap-2">
-                  <span>Căutare rapidă</span>
-                </span>
-                <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1 rounded-md border border-border/60 bg-white px-1.5 py-0.5 font-medium">
-                    ⌘K
+          <div className="flex h-full items-center justify-center">
+            <div className="w-full space-y-5 py-2">
+              <div className="flex items-center justify-center px-2">
+              {!isCollapsed ? (
+                <Button
+                  variant="outline"
+                  className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
+                  onClick={onOpenSpotlight}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>Căutare rapidă</span>
                   </span>
-                  <Search className="h-3.5 w-3.5" />
-                </span>
-              </Button>
-            ) : null}
-            </div>
-
-            <nav className="space-y-0 px-2">
-              {menuItems.map((item) => {
-                const Icon = item.icon
-                const isActive = activeMenu === item.id
-
-                return (
-                  <Button
-                    key={item.id}
-                    variant="ghost"
-                    className={cn(
-                      "group relative w-full justify-start gap-3 rounded-xl text-left text-foreground transition",
-                      isActive
-                        ? "bg-primary/5 text-primary hover:bg-primary/10"
-                        : "hover:bg-muted/50",
-                      isCollapsed && "px-2 py-3 justify-center",
-                    )}
-                    onClick={() => onMenuChange?.(item.id)}
-                  >
-                    <span
-                      className={cn(
-                        "flex h-8 w-8 items-center justify-start rounded-md text-secondary-foreground transition",
-                        isCollapsed && "h-10 w-10 justify-center",
-                      )}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
+                  <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1 rounded-md border border-border/60 bg-white px-1.5 py-0.5 font-medium">
+                      ⌘K
                     </span>
-                    {!isCollapsed ? (
-                      <span className="text-sm font-medium leading-none text-muted-foreground">{item.label}</span>
-                    ) : null}
-                  </Button>
-                )
-              })}
-            </nav>
+                    <Search className="h-3.5 w-3.5" />
+                  </span>
+                </Button>
+              ) : null}
+              </div>
 
+              <nav className="space-y-0 px-2">
+                {menuItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = activeMenu === item.id
+
+                  return (
+                    <Button
+                      key={item.id}
+                      variant="ghost"
+                      className={cn(
+                        "group relative w-full justify-start gap-3 rounded-xl text-left text-foreground transition",
+                        isActive
+                          ? "bg-primary/5 text-primary hover:bg-primary/10"
+                          : "hover:bg-muted/50",
+                        isCollapsed && "px-2 py-3 justify-center",
+                      )}
+                      onClick={() => onMenuChange?.(item.id)}
+                    >
+                      <span
+                        className={cn(
+                          "flex h-8 w-8 items-center justify-start rounded-md text-secondary-foreground transition",
+                          isCollapsed && "h-10 w-10 justify-center",
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </span>
+                      {!isCollapsed ? (
+                        <span className="text-sm font-medium leading-none text-muted-foreground">{item.label}</span>
+                      ) : null}
+                    </Button>
+                  )
+                })}
+              </nav>
+
+            </div>
           </div>
         </ScrollArea>
       </div>
