@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useParams } from "react-router-dom"
+import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom"
 import Dashboard from "./components/dashboard/Dashboard"
 import WorkspaceView from "./components/views/WorkspaceView"
 import ClientView from "./components/views/ClientView"
@@ -12,6 +12,7 @@ import SubscriptionPaymentView from "./components/views/SubscriptionPaymentView"
 import ConfirmSubscriptionView from "./components/views/ConfirmSubscriptionView"
 import ClientAccessView from "./components/views/ClientAccessView"
 import ClientLoginView from "./components/views/ClientLoginView"
+import OnboardingView from "./components/views/OnboardingView"
 import useWorkspaceStore from "./store/workspaceStore"
 import { GlobalDropdownBackdrop } from "./components/ui/dropdown-menu"
 import { useMemo, useEffect } from "react"
@@ -46,16 +47,33 @@ function WorkspaceViewWrapper() {
   return <WorkspaceView workspace={workspace} />
 }
 
+// Wrapper component for Dashboard that checks onboarding
+function DashboardWrapper() {
+  const { hasCompletedOnboarding } = useWorkspaceStore()
+
+  if (!hasCompletedOnboarding()) {
+    return <OnboardingView />
+  }
+
+  return (
+    <>
+      <Dashboard />
+      <GlobalDropdownBackdrop />
+    </>
+  )
+}
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={
+        <Route path="/onboarding" element={
           <>
-            <Dashboard />
+            <OnboardingView />
             <GlobalDropdownBackdrop />
           </>
         } />
+        <Route path="/" element={<DashboardWrapper />} />
         <Route path="/workspace/:workspaceId/public" element={
           <>
             <ClientView />

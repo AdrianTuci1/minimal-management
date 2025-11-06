@@ -50,6 +50,7 @@ const defaultState = {
     email: "alexandru@example.com",
     initials: "AP",
     avatar: null,
+    userType: null, // "service_provider" | "service_user" | null
   },
 
   // Subscription state
@@ -200,6 +201,12 @@ const useWorkspaceStore = create(
         set((state) => ({
           currentUser: { ...state.currentUser, ...updates },
         })),
+      
+      // Onboarding actions
+      hasCompletedOnboarding: () => {
+        const state = useWorkspaceStore.getState()
+        return state.currentUser.userType !== null
+      },
     }),
     {
       name: STORAGE_KEY,

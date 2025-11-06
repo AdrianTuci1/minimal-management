@@ -136,55 +136,86 @@ const DashboardSidebar = ({ activeView, onViewChange, onOpenCreateTeamSpotlight 
       {/* Navigation */}
       <div className="border-b border-border/60 p-2">
         <div className="space-y-0.5">
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-2 text-sm h-8",
-              activeView === "recents" && "bg-primary/10 text-primary font-medium"
-            )}
-            onClick={() => handleViewChange("recents")}
-          >
-            <HomeIcon className="h-4 w-4" />
-            Home
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-2 text-sm h-8",
-              activeView === "services" && "bg-primary/10 text-primary font-medium"
-            )}
-            onClick={() => handleViewChange("services")}
-          >
-            <Briefcase className="h-4 w-4" />
-            Servicii
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-2 text-sm h-8",
-              activeView === "groups" && "bg-primary/10 text-primary font-medium"
-            )}
-            onClick={() => handleViewChange("groups")}
-          >
-            <Users className="h-4 w-4" />
-            Grupuri
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-2 text-sm h-8",
-              activeView === "drafts" && "bg-primary/10 text-primary font-medium"
-            )}
-            onClick={() => handleViewChange("drafts")}
-          >
-            <FileText className="h-4 w-4" />
-            Drafts
-          </Button>
+          {currentUser?.userType === "service_user" ? (
+            // For service users, show simplified navigation
+            <>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-2 text-sm h-8",
+                  activeView === "services" && "bg-primary/10 text-primary font-medium"
+                )}
+                onClick={() => handleViewChange("services")}
+              >
+                <Briefcase className="h-4 w-4" />
+                Servicii
+              </Button>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-2 text-sm h-8",
+                  activeView === "account" && "bg-primary/10 text-primary font-medium"
+                )}
+                onClick={() => handleViewChange("account")}
+              >
+                <User className="h-4 w-4" />
+                Contul meu
+              </Button>
+            </>
+          ) : (
+            // For service providers, show full navigation
+            <>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-2 text-sm h-8",
+                  activeView === "recents" && "bg-primary/10 text-primary font-medium"
+                )}
+                onClick={() => handleViewChange("recents")}
+              >
+                <HomeIcon className="h-4 w-4" />
+                Home
+              </Button>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-2 text-sm h-8",
+                  activeView === "services" && "bg-primary/10 text-primary font-medium"
+                )}
+                onClick={() => handleViewChange("services")}
+              >
+                <Briefcase className="h-4 w-4" />
+                Servicii
+              </Button>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-2 text-sm h-8",
+                  activeView === "groups" && "bg-primary/10 text-primary font-medium"
+                )}
+                onClick={() => handleViewChange("groups")}
+              >
+                <Users className="h-4 w-4" />
+                Grupuri
+              </Button>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-2 text-sm h-8",
+                  activeView === "drafts" && "bg-primary/10 text-primary font-medium"
+                )}
+                onClick={() => handleViewChange("drafts")}
+              >
+                <FileText className="h-4 w-4" />
+                Drafts
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Group Section */}
-      {selectedGroup && (
+      {/* Group Section - Only show for service providers */}
+      {currentUser?.userType !== "service_user" && selectedGroup && (
         <>
           <div className="border-b border-border/60 p-2">
             <DropdownMenu>

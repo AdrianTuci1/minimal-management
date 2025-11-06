@@ -23,6 +23,7 @@ import DraftsView from "./views/DraftsView"
 import AllProjectsView from "./views/AllProjectsView"
 import GroupView from "./views/GroupView"
 import ServicesView from "./views/ServicesView"
+import AccountView from "./views/AccountView"
 
 const SUBSCRIPTION_PLANS = {
   basic: { name: "Basic", maxWorkspaces: 1, price: 50 },
@@ -48,7 +49,8 @@ function Dashboard() {
     drafts,
     createDraft,
     updateDraft,
-    deleteDraft
+    deleteDraft,
+    currentUser
   } = useWorkspaceStore()
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
   const [isCreateDraftOpen, setIsCreateDraftOpen] = useState(false)
@@ -59,7 +61,10 @@ function Dashboard() {
   const [newDraftType, setNewDraftType] = useState("note")
   const [newDraftContent, setNewDraftContent] = useState("")
   const [newDraftMediaUrl, setNewDraftMediaUrl] = useState("")
-  const [activeView, setActiveView] = useState("recents")
+  
+  // Set default view based on user type
+  const defaultView = currentUser?.userType === "service_user" ? "services" : "recents"
+  const [activeView, setActiveView] = useState(defaultView)
   
   const draftNameInputRef = useRef(null)
 
@@ -278,12 +283,14 @@ function Dashboard() {
       />
 
       <div className="flex-1 flex flex-col bg-background h-screen overflow-hidden">
-        {/* Header with Actions - Hidden for drafts, recents, groups, and services */}
-        {activeView !== "drafts" && 
+        {/* Header with Actions - Hidden for drafts, recents, groups, services, account, and for service users */}
+        {currentUser?.userType !== "service_user" &&
+         activeView !== "drafts" && 
          !activeView.startsWith("group-drafts-") && 
          activeView !== "recents" && 
          activeView !== "groups" &&
-         activeView !== "services" && (
+         activeView !== "services" &&
+         activeView !== "account" && (
           <DashboardHeader
             activeView={activeView}
             onViewChange={handleViewChange}
@@ -307,6 +314,10 @@ function Dashboard() {
 
           {activeView === "services" && (
             <ServicesView />
+          )}
+
+          {activeView === "account" && (
+            <AccountView />
           )}
 
           {(activeView === "home" || activeView === "all-projects") && (
