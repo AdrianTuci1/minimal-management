@@ -17,15 +17,32 @@ function Calendar({
   buttonVariant = "ghost",
   formatters,
   components,
+  isDateUnavailable,
+  readOnly = false,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
+  isDateUnavailable?: (date: Date) => boolean
+  readOnly?: boolean
 }) {
   const defaultClassNames = getDefaultClassNames()
+
+  const checkDateUnavailable = React.useCallback((date: Date): boolean => {
+    if (!isDateUnavailable) return false
+    return isDateUnavailable(date)
+  }, [isDateUnavailable])
+
+  // Create disabledDates function for react-day-picker
+  // In readOnly mode, we still mark unavailable dates as disabled for styling,
+  // but we'll handle readOnly at the button level to prevent all interactions
+  const disabledDates = React.useCallback((date: Date) => {
+    return checkDateUnavailable(date)
+  }, [checkDateUnavailable])
 
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      disabled={disabledDates}
       className={cn(
         "bg-background group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
@@ -116,7 +133,7 @@ function Calendar({
           defaultClassNames.outside
         ),
         disabled: cn(
-          "text-muted-foreground opacity-50",
+          "text-muted-foreground opacity-50 cursor-not-allowed",
           defaultClassNames.disabled
         ),
         hidden: cn("invisible", defaultClassNames.hidden),
@@ -153,7 +170,7 @@ function Calendar({
             <ChevronDownIcon className={cn("size-4", className)} {...props} />
           )
         },
-        DayButton: CalendarDayButton,
+        DayButton: (props) => <CalendarDayButton {...props} checkDateUnavailable={checkDateUnavailable} readOnly={readOnly} />,
         WeekNumber: ({ children, ...props }) => {
           return (
             <td {...props}>
@@ -174,14 +191,33 @@ function CalendarDayButton({
   className,
   day,
   modifiers,
+  checkDateUnavailable,
+  readOnly = false,
+  children,
+  onClick,
   ...props
-}: React.ComponentProps<typeof DayButton>) {
+}: React.ComponentProps<typeof DayButton> & {
+  checkDateUnavailable?: (date: Date) => boolean
+  readOnly?: boolean
+}) {
   const defaultClassNames = getDefaultClassNames()
 
   const ref = React.useRef<HTMLButtonElement>(null)
   React.useEffect(() => {
-    if (modifiers.focused) ref.current?.focus()
-  }, [modifiers.focused])
+    if (modifiers.focused && !readOnly) ref.current?.focus()
+  }, [modifiers.focused, readOnly])
+
+  const isUnavailable = checkDateUnavailable ? checkDateUnavailable(day.date) : false
+
+  // Handle click: prevent selection in readOnly mode
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (readOnly) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+    onClick?.(e)
+  }
 
   return (
     <Button
@@ -198,13 +234,21 @@ function CalendarDayButton({
       data-range-start={modifiers.range_start}
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
+      disabled={isUnavailable || readOnly}
+      onClick={handleClick}
       className={cn(
         "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 flex aspect-square h-auto w-full min-w-[--cell-size] flex-col gap-1 font-normal leading-none data-[range-end=true]:rounded-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] [&>span]:text-xs [&>span]:opacity-70",
+        isUnavailable && "cursor-not-allowed",
+        readOnly && "cursor-default pointer-events-none",
         defaultClassNames.day,
         className
       )}
       {...props}
-    />
+    >
+      <span className={cn(isUnavailable && "line-through decoration-2")}>
+        {children}
+      </span>
+    </Button>
   )
 }
 

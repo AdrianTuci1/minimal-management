@@ -12,6 +12,7 @@ import SubscriptionPaymentView from "./components/views/SubscriptionPaymentView"
 import ConfirmSubscriptionView from "./components/views/ConfirmSubscriptionView"
 import ClientAccessView from "./components/views/ClientAccessView"
 import ClientLoginView from "./components/views/ClientLoginView"
+import ClientAreaView from "./components/views/ClientAreaView"
 import OnboardingView from "./components/views/OnboardingView"
 import useWorkspaceStore from "./store/workspaceStore"
 import { GlobalDropdownBackdrop } from "./components/ui/dropdown-menu"
@@ -131,6 +132,12 @@ function App() {
         <Route path="/workspace/:workspaceId/client-login" element={
           <>
             <ClientLoginView />
+            <GlobalDropdownBackdrop />
+          </>
+        } />
+        <Route path="/workspace/:workspaceId/client" element={
+          <>
+            <ClientAreaView />
             <GlobalDropdownBackdrop />
           </>
         } />

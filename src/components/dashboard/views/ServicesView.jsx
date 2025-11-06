@@ -1,14 +1,60 @@
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Briefcase, ExternalLink, Calendar, Clock } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { Briefcase, ExternalLink, Calendar, Clock, User, MapPin, Phone, Mail, Package, ChevronDown, ChevronUp } from "lucide-react"
 import useWorkspaceStore from "../../../store/workspaceStore"
+import { getWorkspaceConfig } from "../../../config/workspaceConfig"
+import { checkClientAuth } from "../../../services/subscriptionService"
+import { FitnessClientArea, HotelClientArea, ClinicClientArea } from "../../client-areas"
 
 function ServicesView() {
   const navigate = useNavigate()
   const { currentUser, workspaces } = useWorkspaceStore()
+  const [expandedServices, setExpandedServices] = useState({})
+  const [clientDataMap, setClientDataMap] = useState({})
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Verifică autentificarea clientului
+  useEffect(() => {
+    const checkAuth = async () => {
+      const authResult = await checkClientAuth()
+      setIsAuthenticated(authResult.authenticated)
+      
+      if (authResult.authenticated) {
+        // Încarcă datele clientului pentru fiecare serviciu
+        try {
+          const clients = JSON.parse(localStorage.getItem('subscriptionClients') || '{}')
+          const session = authResult.session
+          
+          const clientData = {}
+          Object.values(clients).forEach(client => {
+            const matchesSession = session.clientId === client.clientId
+            const matchesEmail = session.email && client.formData?.email === session.email
+            
+            if (matchesSession || matchesEmail) {
+              clientData[client.workspaceId] = client
+            }
+          })
+          
+          setClientDataMap(clientData)
+        } catch (error) {
+          console.error('Error loading client data:', error)
+        }
+      }
+    }
+    
+    checkAuth()
+  }, [])
+
+  const toggleServiceExpansion = (serviceId) => {
+    setExpandedServices(prev => ({
+      ...prev,
+      [serviceId]: !prev[serviceId]
+    }))
+  }
 
   // Obține serviciile asociate utilizatorului din localStorage (abonamente)
   const userServices = useMemo(() => {
@@ -82,10 +128,17 @@ function ServicesView() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           {userServices.map((service) => {
             const workspace = workspaces.find(ws => ws.id === service.workspaceId)
+            const workspaceConfig = workspace ? getWorkspaceConfig(workspace.type) : null
+            const clientData = clientDataMap[service.workspaceId]
+            const isExpanded = expandedServices[service.id]
             
+            const address = workspace?.address || "Strada Exemplu nr. 123, București"
+            const email = workspace?.email || "contact@example.com"
+            const phone = workspace?.phone || "+40 123 456 789"
+
             return (
               <Card key={service.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
@@ -96,15 +149,31 @@ function ServicesView() {
                         {service.description}
                       </CardDescription>
                     </div>
-                    {service.confirmed ? (
-                      <Badge variant="default" className="ml-2">
-                        Activ
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="ml-2">
-                        Neconfirmat
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {service.confirmed ? (
+                        <Badge variant="default" className="ml-2">
+                          Activ
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="ml-2">
+                          Neconfirmat
+                        </Badge>
+                      )}
+                      {isAuthenticated && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => toggleServiceExpansion(service.id)}
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -120,7 +189,7 @@ function ServicesView() {
 
                   {workspace && (
                     <div className="pt-3 border-t border-border">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Briefcase className="h-4 w-4" />
                           <span className="truncate">{workspace.name}</span>
@@ -141,6 +210,31 @@ function ServicesView() {
                   {service.confirmedAt && (
                     <div className="pt-2 text-xs text-muted-foreground">
                       Confirmat pe {new Date(service.confirmedAt).toLocaleDateString("ro-RO")}
+                    </div>
+                  )}
+
+                  {/* Zona de client expandată - doar pentru clienți autentificați */}
+                  {isAuthenticated && isExpanded && workspace && workspaceConfig && (
+                    <div className="pt-4 border-t border-border">
+                      {(() => {
+                        const commonProps = {
+                          workspace,
+                          workspaceConfig,
+                          clientData,
+                          subscription: service,
+                        }
+                        
+                        switch (workspaceConfig.id) {
+                          case "fitness":
+                            return <FitnessClientArea {...commonProps} />
+                          case "hotel":
+                            return <HotelClientArea {...commonProps} />
+                          case "clinic":
+                            return <ClinicClientArea {...commonProps} />
+                          default:
+                            return <ClinicClientArea {...commonProps} />
+                        }
+                      })()}
                     </div>
                   )}
                 </CardContent>

@@ -113,6 +113,36 @@ function ClientView() {
   }
   const schedule = getSchedule()
 
+  // Funcție pentru a determina dacă o zi nu este disponibilă
+  // Poate fi înlocuită cu date reale din store sau API
+  const isDateUnavailable = (date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dayDate = new Date(date)
+    dayDate.setHours(0, 0, 0, 0)
+    
+    // Zilele din trecut - indisponibile
+    if (dayDate < today) {
+      return true
+    }
+    
+    // Zilele de weekend - indisponibile (dacă nu e hotel)
+    if (workspace.type !== "hotel") {
+      const dayOfWeek = dayDate.getDay()
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        return true
+      }
+    }
+    
+    // Zilele prea îndepărtate - indisponibile (ex: peste 2 luni)
+    const daysDiff = Math.floor((dayDate - today) / (1000 * 60 * 60 * 24))
+    if (daysDiff > 60) {
+      return true
+    }
+    
+    return false
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-5xl w-full bg-card rounded-lg border border-border overflow-hidden">
@@ -230,6 +260,8 @@ function ClientView() {
                     <Calendar
                       mode="single"
                       className="rounded-md border w-full"
+                      isDateUnavailable={isDateUnavailable}
+                      readOnly={true}
                     />
                   </div>
                   
