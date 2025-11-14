@@ -712,7 +712,7 @@ function WorkspaceView({ workspace }) {
                 ? [
                     {
                       id: "details",
-                      icon: Calendar,
+                      icon: CalendarIcon,
                       content: (
                         <DrawerContent>
                           <>

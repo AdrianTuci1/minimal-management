@@ -166,10 +166,10 @@ const ActionBar = ({ actions = [] }) => {
     month: "Lună"
   }
 
-  const viewIcons = {
-    day: CalendarClock,
-    week: CalendarDays,
-    month: CalendarRange
+  const viewButtonLabels = {
+    day: "1",
+    week: "7",
+    month: "30-31"
   }
 
   return (
@@ -252,8 +252,7 @@ const ActionBar = ({ actions = [] }) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="h-10 rounded-xl px-3 gap-2" type="button">
-                  {React.createElement(viewIcons[calendarView], { className: "h-4 w-4" })}
-                  <span className="hidden sm:inline">{viewLabels[calendarView]}</span>
+                  <span className="font-semibold">{viewButtonLabels[calendarView]}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-40">

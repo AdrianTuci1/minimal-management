@@ -58,21 +58,18 @@ const Drawer = React.forwardRef<HTMLDivElement, DrawerProps>(
       <>
         {/* Backdrop */}
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs"
           onClick={() => onOpenChange(false)}
         />
         {/* Drawer */}
         <div
           ref={ref}
           className={cn(
-            "fixed right-0 top-0 z-50 h-full w-[400px] transition-transform duration-600 ease-in-out flex justify-center align-center",
-            open ? "translate-x-0" : "translate-x-full",
+            "fixed inset-0 z-50 flex items-center justify-center p-4",
             className
           )}
         >
-          {/* Padding */}
-          <div className="w-full h-full p-4">
-          <div className="flex h-full flex-col bg-white border border-gray-200 rounded-lg">
+          <div className="flex h-full w-full max-w-[440px] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl lg:h-auto lg:max-h-[80vh] lg:max-w-[840px]">
             {/* Header */}
             {title && (
               <div className="flex items-center justify-between border-b border-border px-6 py-4">
@@ -141,7 +138,6 @@ const Drawer = React.forwardRef<HTMLDivElement, DrawerProps>(
                 </div>
               </div>
             )}
-          </div>
           </div>
         </div>
       </>
