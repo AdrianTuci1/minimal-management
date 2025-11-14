@@ -16,43 +16,43 @@ import { ro } from "date-fns/locale"
 const mockRoomTypes = [
   {
     id: "single",
-    name: "Camera Single",
-    description: "Cameră modernă cu un pat single, ideală pentru oaspeți de negociu.",
+    name: "Cabana Single",
+    description: "Cabană intimă pentru 2 persoane, perfectă pentru o escapadă liniștită sau călătorii de afaceri.",
     price: 250,
-    capacity: 1,
+    capacity: 2,
     amenities: ["WiFi", "TV", "Aer condiționat", "Baie privată"],
-    image: null,
+    image: '/cabin2.jpg',
     available: 3,
   },
   {
     id: "double",
-    name: "Camera Double",
-    description: "Cameră spațioasă cu pat dublu, perfectă pentru cupluri.",
+    name: "Cabana Doubla",
+    description: "Cabană spațioasă pentru 4 persoane, ideală pentru cupluri sau familii mici.",
     price: 350,
-    capacity: 2,
+    capacity: 4,
     amenities: ["WiFi", "TV", "Aer condiționat", "Baie privată", "Balcon"],
-    image: null,
+    image: '/cabin3.jpg',
     available: 5,
   },
   {
     id: "suite",
     name: "Suite",
-    description: "Cameră de lux cu living separat, ideală pentru o experiență premium.",
+    description: "Cabană de lux cu living separat, gândită pentru până la 6 persoane și experiențe premium.",
     price: 550,
-    capacity: 2,
+    capacity: 6,
     amenities: ["WiFi", "TV", "Aer condiționat", "Baie privată", "Balcon", "Minibar", "Jacuzzi"],
-    image: null,
+    image: '/cabin1.jpg',
     available: 2,
   },
   {
     id: "family",
-    name: "Camera Family",
-    description: "Cameră mare cu două paturi, perfectă pentru familii.",
+    name: "Cabin Family",
+    description: "Cabană generoasă pentru 4 persoane, concepută pentru familii sau grupuri de prieteni.",
     price: 450,
     capacity: 4,
     amenities: ["WiFi", "TV", "Aer condiționat", "Baie privată", "Balcon", "Sufragerie"],
-    image: null,
-    available: 4,
+    image: '/cabin4.webp',
+    available: 1,
   },
 ]
 
@@ -275,8 +275,11 @@ function BookReservationView() {
                     <CardContent className="p-4 md:p-6">
                       <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                         {/* Room Image Placeholder */}
-                        <div className="w-full md:w-48 h-48 md:h-32 bg-muted rounded-none flex items-center justify-center shrink-0">
-                          <Bed className="h-8 w-8 text-muted-foreground" />
+                        <div
+                          className="relative w-full md:w-64 bg-muted rounded-none overflow-hidden shrink-0"
+                          style={{ aspectRatio: "4 / 3" }}
+                        >
+                          <img src={roomType.image} alt={roomType.name} className="absolute inset-0 w-full h-full object-cover" />
                         </div>
 
                         {/* Room Details */}
@@ -325,7 +328,7 @@ function BookReservationView() {
                             <div className="text-sm text-muted-foreground">
                               {isAvailable ? (
                                 <span className="text-emerald-600 font-medium">
-                                  {roomType.available} {roomType.available === 1 ? "cameră disponibilă" : "camere disponibile"}
+                                  {roomType.available} {roomType.available === 1 ? "unitate disponibilă" : "unitati disponibile"}
                                 </span>
                               ) : (
                                 <span className="text-red-600 font-medium">

@@ -1,9 +1,12 @@
+import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Calendar, Clock, User, MapPin, Phone, Mail, CalendarDays, Package, Bed } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, User, MapPin, Phone, Mail, CalendarDays, Package, Bed } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import GanttChart from "@/components/GanttChart"
+import { hotelReservationsData } from "@/config/demoGanttData"
 
 function HotelClientArea({ workspace, workspaceConfig, clientData, subscription }) {
   const navigate = useNavigate()
@@ -11,6 +14,11 @@ function HotelClientArea({ workspace, workspaceConfig, clientData, subscription 
   const address = workspace.address || "Strada Exemplu nr. 123, București"
   const email = workspace.email || "contact@example.com"
   const phone = workspace.phone || "+40 123 456 789"
+
+  // Generate reservations data with current dates
+  const reservationsData = useMemo(() => {
+    return hotelReservationsData
+  }, [])
 
   return (
     <>
@@ -95,27 +103,24 @@ function HotelClientArea({ workspace, workspaceConfig, clientData, subscription 
       </Card>
 
       {/* Rezervări */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Rezervările mele</CardTitle>
-          <CardDescription>Vezi rezervările tale</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Bed className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground mb-4">
-              Funcționalitatea va fi disponibilă în curând
-            </p>
-            <Button 
-              variant="outline"
-              onClick={() => navigate(`/workspace/${workspace.id}/public/book-reservation`)}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Rezervă o cameră
-            </Button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Rezervările mele</h2>
+            <p className="text-sm text-muted-foreground">Vezi și gestionează rezervările tale</p>
           </div>
-        </CardContent>
-      </Card>
+          <Button 
+            variant="default"
+            onClick={() => navigate(`/workspace/${workspace.id}/public/book-reservation`)}
+          >
+            <CalendarIcon className="h-4 w-4 mr-2" />
+            Rezervă
+          </Button>
+        </div>
+        <div className="w-full h-[calc(100vh-400px)] min-h-[600px] overflow-hidden rounded-lg border border-border shadow-sm">
+          <GanttChart data={reservationsData} />
+        </div>
+      </div>
 
     </>
   )

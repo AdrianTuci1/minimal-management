@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from "react"
 
 import Sidebar from "../Sidebar"
 import TopBar from "../TopBar"
-import Whiteboard from "../whiteboards/clinic/Whiteboard"
-import HotelWhiteboard from "../whiteboards/hotel/HotelWhiteboard"
-import FitnessWhiteboard from "../whiteboards/fitness/FitnessWhiteboard"
+import Calendar from "../Calendar"
+import GanttChart from "../GanttChart"
 import SpotlightSearch from "../SpotlightSearch"
 import KpiOverview from "./KpiOverview"
 import TreatmentsView from "./TreatmentsView"
@@ -17,7 +16,9 @@ import useAppStore from "../../store/appStore"
 import useWorkspaceConfig from "../../hooks/useWorkspaceConfig"
 import { getDemoDoctors, getDemoAppointments, getDemoClients } from "../../config/demoData"
 import { getDrawerInputs } from "../../config/drawerInputs"
-import { Calendar, Save, Trash2 } from "lucide-react"
+import { clinicAppointmentsData } from "../../config/demoCalendarData"
+import { hotelReservationsData, fitnessWorkoutData } from "../../config/demoGanttData"
+import { Calendar as CalendarIcon, Save, Trash2 } from "lucide-react"
 
 const initialOnlineUsers = [
   {
@@ -175,6 +176,7 @@ function WorkspaceView({ workspace }) {
     setActiveMenu,
     selectedDate,
     setSelectedDate,
+    calendarView,
     isSpotlightOpen,
     setIsSpotlightOpen,
     isSidebarCollapsed,
@@ -599,34 +601,35 @@ function WorkspaceView({ workspace }) {
         return <SettingsView />
       case "programari":
       default:
-        // Folosește HotelWhiteboard pentru workspace-uri de tip hotel
+        // Folosește GanttChart pentru workspace-uri de tip hotel
         if (config.id === "hotel" || workspaceType === "hotel") {
           return (
-            <HotelWhiteboard
-              reservations={reservations}
-              onReservationChange={handleReservationChange}
-            />
+            <div className="w-full h-full">
+              <GanttChart data={hotelReservationsData} />
+            </div>
           )
         }
-        // Folosește FitnessWhiteboard pentru workspace-uri de tip fitness
+        // Folosește GanttChart pentru workspace-uri de tip fitness
         if (config.id === "fitness" || workspaceType === "fitness") {
-          console.log("Rendering FitnessWhiteboard with clients:", initialClients)
           return (
-            <FitnessWhiteboard
-              clients={initialClients}
-              appointments={appointments}
-              onAppointmentChange={handleAppointmentChange}
-              onAppointmentDoubleClick={handleAppointmentDoubleClick}
-            />
+            <div className="w-full h-full">
+              <GanttChart data={fitnessWorkoutData} />
+            </div>
           )
         }
+        // Folosește Calendar pentru clinici
         return (
-          <Whiteboard
-            doctors={doctors}
-            appointments={appointments}
-            onAppointmentChange={handleAppointmentChange}
-            onAppointmentDoubleClick={handleAppointmentDoubleClick}
-          />
+          <div className="w-full h-full">
+            <Calendar
+              events={clinicAppointmentsData}
+              currentView={calendarView}
+              currentDate={selectedDate}
+              onEventClick={handleAppointmentDoubleClick}
+              onEventCreate={(date, hour) => {
+                openDrawer("programare", null, "create")
+              }}
+            />
+          </div>
         )
     }
   }

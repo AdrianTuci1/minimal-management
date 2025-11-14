@@ -1,6 +1,14 @@
-# Whiteboards
+# Whiteboards [DEPRECATED]
 
-Acest folder conține componentele whiteboard specifice fiecărui tip de workspace.
+> ⚠️ **DEPRECATED**: Aceste componente au fost înlocuite cu Calendar și GanttChart.
+> 
+> - Pentru clinici: Folosește `/components/Calendar`
+> - Pentru hotel: Folosește `/components/GanttChart`  
+> - Pentru fitness: Folosește `/components/GanttChart`
+>
+> Vezi `CLIENT_AREAS_UPDATE.md` pentru detalii despre migrare.
+
+Acest folder conținea componentele whiteboard specifice fiecărui tip de workspace (acum deprecated).
 
 ## Structura
 

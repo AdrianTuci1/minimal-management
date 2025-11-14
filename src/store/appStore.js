@@ -12,6 +12,34 @@ const useAppStore = create((set) => ({
   shiftDate: (days) => set((state) => ({ selectedDate: addDays(state.selectedDate, days) })),
   jumpToToday: () => set({ selectedDate: new Date() }),
 
+  // Calendar view state
+  calendarView: "week",
+  setCalendarView: (view) => set({ calendarView: view }),
+  
+  // Smart date navigation based on view
+  navigateCalendar: (direction) => set((state) => {
+    const { selectedDate, calendarView } = state
+    let newDate
+    
+    switch (calendarView) {
+      case 'day':
+        newDate = addDays(selectedDate, direction)
+        break
+      case 'week':
+        newDate = addDays(selectedDate, direction * 7)
+        break
+      case 'month':
+        const currentMonth = selectedDate.getMonth()
+        const currentYear = selectedDate.getFullYear()
+        newDate = new Date(currentYear, currentMonth + direction, 1)
+        break
+      default:
+        newDate = addDays(selectedDate, direction)
+    }
+    
+    return { selectedDate: newDate }
+  }),
+
   // Date range state (for hotel reservations)
   selectedDateRange: (() => {
     const monday = startOfWeek(new Date(), { weekStartsOn: 1 })

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Filter, Search, CalendarIcon, ChevronLeft, ChevronRight, Plus, CalendarCheck } from "lucide-react"
+import { Filter, Search, CalendarIcon, ChevronLeft, ChevronRight, Plus, CalendarCheck, CalendarDays, CalendarClock, CalendarRange } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -10,9 +10,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu"
-import { useMemo, useState } from "react"
-import { format } from "date-fns"
+import React, { useMemo, useState } from "react"
+import { format, startOfWeek as startOfWeekFn, endOfWeek } from "date-fns"
 import { ro } from "date-fns/locale"
 import { addDays, startOfWeek } from "date-fns"
 import useAppStore from "@/store/appStore"
@@ -32,14 +34,36 @@ const ActionBar = ({ actions = [] }) => {
     jumpToToday,
     selectedDateRange,
     setSelectedDateRange,
+    calendarView,
+    setCalendarView,
+    navigateCalendar,
   } = useAppStore()
-  const { workspaceType } = useWorkspaceConfig()
+  const { workspaceType, config } = useWorkspaceConfig()
 
-  const isHotelReservations = activeMenu === "programari" && workspaceType === "hotel"
+  const isHotelReservations = activeMenu === "programari" && (config?.id === "hotel" || workspaceType === "hotel")
+  const isClinicCalendar = activeMenu === "programari" && (config?.id === "clinic" || workspaceType === "clinic" || workspaceType === "clinica-dentara")
 
   const formattedDate = useMemo(() => {
+    if (isClinicCalendar) {
+      switch (calendarView) {
+        case 'day':
+          return format(selectedDate, "EEEE, d MMM", { locale: ro })
+        case 'week': {
+          const weekStart = startOfWeekFn(selectedDate, { weekStartsOn: 1 }) // Monday
+          const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 }) // Sunday
+          const startDay = format(weekStart, "d", { locale: ro })
+          const endDay = format(weekEnd, "d", { locale: ro })
+          const month = format(weekEnd, "MMM", { locale: ro })
+          return `${startDay}-${endDay} ${month}`
+        }
+        case 'month':
+          return format(selectedDate, "MMMM yyyy", { locale: ro })
+        default:
+          return format(selectedDate, "EEEE, d MMM", { locale: ro })
+      }
+    }
     return format(selectedDate, "EEEE, d MMM", { locale: ro })
-  }, [selectedDate])
+  }, [selectedDate, calendarView, isClinicCalendar])
 
   const formattedDateRange = useMemo(() => {
     if (!selectedDateRange?.from) return ""
@@ -136,6 +160,18 @@ const ActionBar = ({ actions = [] }) => {
     return Object.values(filters).filter(Boolean).length
   }, [filters])
 
+  const viewLabels = {
+    day: "Zi",
+    week: "Săptămână",
+    month: "Lună"
+  }
+
+  const viewIcons = {
+    day: CalendarClock,
+    week: CalendarDays,
+    month: CalendarRange
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-2 px-4 py-2">
       {activeMenu === "programari" ? (
@@ -173,12 +209,79 @@ const ActionBar = ({ actions = [] }) => {
               <span className="sr-only">Săptămâna curentă</span>
             </Button>
           </>
+        ) : isClinicCalendar ? (
+          <>
+            <div className="flex items-center rounded-xl border border-border/80 bg-muted/40">
+              <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => navigateCalendar(-1)}>
+                <ChevronLeft className="h-4 w-4" />
+                <span className="sr-only">Anterior</span>
+              </Button>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" className="h-10 min-w-[140px] items-center justify-start gap-2 rounded-lg px-4 py-2 text-left text-sm font-medium">
+                    <span className="font-semibold capitalize text-foreground">{formattedDate}</span>
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto rounded-lg border-border/80 bg-white p-0 shadow-xl">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(value) => {
+                      if (value) {
+                        setSelectedDate(value)
+                      }
+                      setIsCalendarOpen(false)
+                    }}
+                    locale={ro}
+                    captionLayout={calendarView === 'month' ? 'dropdown-months' : 'label'}
+                  />
+                </PopoverContent>
+              </Popover>
+              <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => navigateCalendar(1)}>
+                <ChevronRight className="h-4 w-4" />
+                <span className="sr-only">Următorul</span>
+              </Button>
+            </div>
+            <Button variant="outline" className="h-10 rounded-xl px-3" onClick={jumpToToday}>
+              <CalendarCheck className="h-4 w-4" />
+              <span className="sr-only">Astăzi</span>
+            </Button>
+            
+            {/* View Selector pentru Calendar */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-10 rounded-xl px-3 gap-2" type="button">
+                  {React.createElement(viewIcons[calendarView], { className: "h-4 w-4" })}
+                  <span className="hidden sm:inline">{viewLabels[calendarView]}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40">
+                <DropdownMenuLabel>Vizualizare</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={calendarView} onValueChange={setCalendarView}>
+                  <DropdownMenuRadioItem value="day">
+                    <CalendarClock className="h-4 w-4 mr-2" />
+                    Zi
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="week">
+                    <CalendarDays className="h-4 w-4 mr-2" />
+                    Săptămână
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="month">
+                    <CalendarRange className="h-4 w-4 mr-2" />
+                    Lună
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
         ) : (
           <>
             <div className="flex items-center rounded-xl border border-border/80 bg-muted/40">
               <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => shiftDate(-1)}>
                 <ChevronLeft className="h-4 w-4" />
-                <span className="sr-only">Ziua anterioară</span>
+                <span className="sr-only">Anterior</span>
               </Button>
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
@@ -203,7 +306,7 @@ const ActionBar = ({ actions = [] }) => {
               </Popover>
               <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => shiftDate(1)}>
                 <ChevronRight className="h-4 w-4" />
-                <span className="sr-only">Ziua următoare</span>
+                <span className="sr-only">Următorul</span>
               </Button>
             </div>
             <Button variant="outline" className="h-10 rounded-xl px-3" onClick={jumpToToday}>

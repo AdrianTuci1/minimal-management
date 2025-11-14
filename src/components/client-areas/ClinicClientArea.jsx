@@ -1,16 +1,37 @@
+import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Calendar, Clock, User, MapPin, Phone, Mail, CalendarDays, Package, Heart } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, User, MapPin, Phone, Mail, CalendarDays, Package, Heart } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import Calendar from "@/components/Calendar"
+import { clinicAppointmentsData } from "@/config/demoCalendarData"
+import useAppStore from "@/store/appStore"
 
 function ClinicClientArea({ workspace, workspaceConfig, clientData, subscription }) {
   const navigate = useNavigate()
+  const { selectedDate, calendarView } = useAppStore()
   
   const address = workspace.address || "Strada Exemplu nr. 123, București"
   const email = workspace.email || "contact@example.com"
   const phone = workspace.phone || "+40 123 456 789"
+
+  // Generate appointments data with current dates
+  const appointmentsData = useMemo(() => {
+    return clinicAppointmentsData
+  }, [])
+
+  const handleEventClick = (event) => {
+    console.log('Appointment clicked:', event)
+    // TODO: Open appointment details
+  }
+
+  const handleEventCreate = (date, hour) => {
+    console.log('Create appointment at:', date, hour)
+    // TODO: Open create appointment form
+    navigate(`/workspace/${workspace.id}/public/request-appointment`)
+  }
 
   return (
     <>
@@ -95,27 +116,30 @@ function ClinicClientArea({ workspace, workspaceConfig, clientData, subscription
       </Card>
 
       {/* Programări */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Programările mele</CardTitle>
-          <CardDescription>Vezi programările tale</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Heart className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground mb-4">
-              Funcționalitatea va fi disponibilă în curând
-            </p>
-            <Button 
-              variant="outline"
-              onClick={() => navigate(`/workspace/${workspace.id}/public/request-appointment`)}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Programează o consultație
-            </Button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Programările mele</h2>
+            <p className="text-sm text-muted-foreground">Vezi și gestionează programările tale</p>
           </div>
-        </CardContent>
-      </Card>
+          <Button 
+            variant="default"
+            onClick={() => navigate(`/workspace/${workspace.id}/public/request-appointment`)}
+          >
+            <CalendarIcon className="h-4 w-4 mr-2" />
+            Programează
+          </Button>
+        </div>
+        <div className="w-full h-[calc(100vh-400px)] min-h-[600px] overflow-hidden rounded-lg border border-border shadow-sm bg-white">
+          <Calendar
+            events={appointmentsData}
+            currentView={calendarView}
+            currentDate={selectedDate}
+            onEventClick={handleEventClick}
+            onEventCreate={handleEventCreate}
+          />
+        </div>
+      </div>
 
     </>
   )
