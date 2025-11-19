@@ -1,0 +1,11 @@
+.flow-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: 0 0;
+  will-change: transform;
+  background-image: radial-gradient(rgba(209, 213, 219, 0.5) 1px, transparent 0);
+  background-size: 14px 14px;
+  background-position: center;
+}
+

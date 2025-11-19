@@ -35,7 +35,7 @@ export const useGanttState = (spaces) => {
 
 export const useResponsiveColumns = () => {
   const [columnWidth, setColumnWidth] = useState(48);
-  const [sidebarWidth, setSidebarWidth] = useState(275);
+  const [sidebarWidth, setSidebarWidth] = useState(80); // Reduced from 275 to 80 for room numbers only
 
   useEffect(() => {
     const handleResize = () => {
@@ -44,15 +44,15 @@ export const useResponsiveColumns = () => {
       if (width < 768) {
         // Mobile
         setColumnWidth(36);
-        setSidebarWidth(200);
+        setSidebarWidth(60);
       } else if (width < 1024) {
         // Tablet
         setColumnWidth(40);
-        setSidebarWidth(240);
+        setSidebarWidth(70);
       } else {
-        // Desktop
+        // Desktop - narrow sidebar for room numbers only
         setColumnWidth(48);
-        setSidebarWidth(275);
+        setSidebarWidth(80);
       }
     };
 

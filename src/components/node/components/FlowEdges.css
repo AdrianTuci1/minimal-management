@@ -1,0 +1,21 @@
+.flow-connections {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.flow-edge {
+  fill: none;
+  stroke: #1a365d;
+  stroke-width: 1.5;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  pointer-events: stroke;
+  cursor: context-menu;
+}
+
+.arrowhead {
+  fill: #1a365d;
+}
+

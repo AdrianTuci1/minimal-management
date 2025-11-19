@@ -12,8 +12,13 @@ import {
   Star,
   MessageSquare,
   Percent,
+  WifiOff
 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useStatistics } from '../../hooks/useStatistics.js'
+import { useHealthRepository } from '../../hooks/useHealthRepository'
+import { useAppointments } from '../../hooks/useAppointments.js'
+import { ChartBarLabelCustom } from '../analytics/BarChartCustomLabel'
 import {
   Label,
   PolarGrid,
@@ -21,101 +26,120 @@ import {
   RadialBar,
   RadialBarChart,
   ResponsiveContainer,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  Cell,
 } from "recharts"
-import { ChartContainer, ChartTooltipContent, ChartTooltip } from '../ui/chart'
+import { ChartContainer } from '../ui/chart'
 
-// Date demo pentru business statistics
-const demoBusinessStatistics = {
-  totalAppointments: 150,
-  totalPatients: 423,
-  appointmentStats: {
-    completed: 120,
-    cancelled: 15,
-    pending: 15,
-    absent: 47
-  },
-  revenue: {
-    monthly: 12500,
-  },
-  websiteBookings: 200,
-  clinicRating: {
-    average: 4.8,
-    totalReviews: 127
-  },
-  smsStats: {
-    sent: 234,
-    limit: 300,
-    percentage: 78
-  },
-  occupancyRate: 85,
-  popularTreatments: [
-    { treatment: 'Detartraj', count: 45 },
-    { treatment: 'Obturație', count: 38 },
-    { treatment: 'Consultație', count: 67 },
-    { treatment: 'Tratament canal', count: 23 },
-    { treatment: 'Albire dentară', count: 15 }
-  ]
-}
+const DashboardHome = () => {
+  const { 
+    businessStatistics, 
+    recentActivities, 
+    loading, 
+  } = useStatistics()
+  const { isOffline } = useHealthRepository()
+  const { appointments } = useAppointments()
+  const [doctorProgressFromDB, setDoctorProgressFromDB] = useState([])
 
-// Date demo pentru activități recente
-const demoRecentActivities = [
-  {
-    activityType: 'appointment',
-    action: 'Programare nouă',
-    patientName: 'Ion Popescu',
-    serviceName: 'Consultație',
-    medicName: 'Dr. Maria Ionescu',
-    time: '10:00',
-    status: 'confirmed',
-    createdAt: new Date(Date.now() - 15 * 60000).toISOString()
-  },
-  {
-    activityType: 'treatment',
-    action: 'Tratament finalizat',
-    patientName: 'Ana Georgescu',
-    treatmentName: 'Detartraj',
-    amount: 250,
-    status: 'completed',
-    createdAt: new Date(Date.now() - 30 * 60000).toISOString()
-  },
-  {
-    activityType: 'payment',
-    action: 'Plată înregistrată',
-    patientName: 'Mihai Popa',
-    amount: 500,
-    status: 'paid',
-    createdAt: new Date(Date.now() - 45 * 60000).toISOString()
-  },
-  {
-    activityType: 'appointment',
-    action: 'Programare anulată',
-    patientName: 'Elena Radu',
-    serviceName: 'Obturație',
-    status: 'cancelled',
-    createdAt: new Date(Date.now() - 60 * 60000).toISOString()
-  },
-  {
-    activityType: 'patient',
-    action: 'Pacient nou',
-    patientName: 'Alexandru Stan',
-    createdAt: new Date(Date.now() - 90 * 60000).toISOString()
-  }
-]
+  // Calculează progresul medicilor din programările de azi (cu status completed)
+  useEffect(() => {
+    if (!appointments || appointments.length === 0) {
+      setDoctorProgressFromDB([])
+      return
+    }
 
-// Date demo pentru progresul medicilor
-const demoDoctorProgress = [
-  { doctor: 'Dr. Maria Ionescu', appointments: 12, progress: 85, fill: 'var(--chart-1)' },
-  { doctor: 'Dr. Ion Popescu', appointments: 8, progress: 75, fill: 'var(--chart-2)' },
-  { doctor: 'Dr. Ana Georgescu', appointments: 10, progress: 90, fill: 'var(--chart-3)' },
-  { doctor: 'Dr. Mihai Radu', appointments: 6, progress: 67, fill: 'var(--chart-4)' },
-]
+    // Filtrează programările de azi
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
+    
+    const todaysAppointments = appointments.filter(appointment => {
+      const appointmentDate = appointment.date 
+        ? (appointment.date.split('T')[0]) 
+        : null
+      return appointmentDate === todayStr
+    })
 
-const KpiOverview = () => {
+    if (todaysAppointments.length === 0) {
+      setDoctorProgressFromDB([])
+      return
+    }
+
+    // Grupează programările după medic și calculează progresul
+    const doctorStats = {}
+    
+    todaysAppointments.forEach(appointment => {
+      // Extrage numele medicului
+      const doctorName = typeof appointment.doctor === 'string' 
+        ? appointment.doctor 
+        : appointment.doctor?.name || appointment.doctor?.medicName || appointment.medicName || 'Doctor necunoscut'
+      
+      // Inițializează statistica pentru medic dacă nu există
+      if (!doctorStats[doctorName]) {
+        doctorStats[doctorName] = {
+          total: 0,
+          completed: 0
+        }
+      }
+      
+      // Incrementează totalul
+      doctorStats[doctorName].total++
+      
+      // Incrementează completate dacă statusul este 'completed'
+      if (appointment.status === 'completed') {
+        doctorStats[doctorName].completed++
+      }
+    })
+    
+    // Transformă în array pentru chart
+    const progressData = Object.entries(doctorStats).map(([doctorName, stats]) => ({
+      doctor: doctorName,
+      appointments: stats.total,
+      progress: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
+    }))
+    
+    setDoctorProgressFromDB(progressData)
+  }, [appointments]) // Recalculează când se schimbă appointments
+
+  /**
+   * Exemple de structură pentru businessStatistics:
+   * {
+   *   totalAppointments: 150,
+   *   totalPatients: 423,
+   *   appointmentStats: {
+   *     completed: 120,
+   *     cancelled: 15,
+   *     pending: 15,
+   *     absent: 47
+   *   },
+   *   appointmentsToday: [
+   *     { id: 1, patientName: 'Ion Popescu', time: '10:00', status: 'confirmed' },
+   *     { id: 2, patientName: 'Maria Ionescu', time: '11:00', status: 'pending' }
+   *   ],
+   *   revenue: {
+   *     monthly: 12500,
+   *   },
+   *   websiteBookings: 200,
+   *   clinicRating: {
+   *     average: 4.8,
+   *     totalReviews: 127
+   *   },
+   *   smsStats: {
+   *     sent: 234,
+   *     limit: 300,
+   *     percentage: 78
+   *   },
+   *   occupancyRate: 85,
+   *   aiUsage: {
+   *     minutes: 45
+   *   },
+   *   popularTreatments: [
+   *     { treatment: 'Detartraj', count: 45 },
+   *     { treatment: 'Obturație', count: 38 },
+   *     { treatment: 'Consultație', count: 67 },
+   *     { treatment: 'Tratament canal', count: 23 },
+   *     { treatment: 'Albire dentară', count: 15 }
+   *   ]
+   * }
+   */
+
   // Helper function to safely extract numeric value
   const extractNumber = (value) => {
     if (value === null || value === undefined) return 0
@@ -131,62 +155,92 @@ const KpiOverview = () => {
 
   // Safe getters pentru datele din businessStatistics
   const getTotalAppointments = () => {
-    return extractNumber(demoBusinessStatistics?.totalAppointments)
+    return extractNumber(businessStatistics?.totalAppointments)
   }
 
   const getTotalPatients = () => {
-    return extractNumber(demoBusinessStatistics?.totalPatients)
+    return extractNumber(businessStatistics?.totalPatients)
   }
 
   const getCompletedAppointments = () => {
-    return extractNumber(demoBusinessStatistics?.appointmentStats?.completed)
+    return extractNumber(businessStatistics?.appointmentStats?.completed)
   }
 
   const getCancelledAppointments = () => {
-    return extractNumber(demoBusinessStatistics?.appointmentStats?.cancelled)
+    return extractNumber(businessStatistics?.appointmentStats?.cancelled)
   }
 
+
   const getMonthlyRevenue = () => {
-    return extractNumber(demoBusinessStatistics?.revenue?.monthly)
+    return extractNumber(businessStatistics?.revenue?.monthly)
+  }
+
+  const getAbsentAppointments = () => {
+    return extractNumber(businessStatistics?.appointmentStats?.absent)
   }
 
   const getWebsiteBookings = () => {
-    return extractNumber(demoBusinessStatistics?.websiteBookings)
+    return extractNumber(businessStatistics?.websiteBookings)
   }
 
   const getClinicRating = () => {
     return {
-      average: extractNumber(demoBusinessStatistics?.clinicRating?.average),
-      totalReviews: extractNumber(demoBusinessStatistics?.clinicRating?.totalReviews)
+      average: extractNumber(businessStatistics?.clinicRating?.average),
+      totalReviews: extractNumber(businessStatistics?.clinicRating?.totalReviews)
     }
   }
 
   const getSmsStats = () => {
     return {
-      sent: extractNumber(demoBusinessStatistics?.smsStats?.sent),
-      limit: extractNumber(demoBusinessStatistics?.smsStats?.limit),
-      percentage: extractNumber(demoBusinessStatistics?.smsStats?.percentage)
+      sent: extractNumber(businessStatistics?.smsStats?.sent),
+      limit: extractNumber(businessStatistics?.smsStats?.limit),
+      percentage: extractNumber(businessStatistics?.smsStats?.percentage)
     }
   }
 
   const getOccupancyRate = () => {
-    return extractNumber(demoBusinessStatistics?.occupancyRate)
+    return extractNumber(businessStatistics?.occupancyRate)
+  }
+
+  // AI calls minutes (sourced from businessStatistics)
+  const getAICallMinutes = () => {
+    const value = businessStatistics?.aiUsage?.minutes ?? businessStatistics?.aiMinutes ?? businessStatistics?.ai?.minutes
+    return extractNumber(value)
+  }
+
+  const getDoctorProgress = () => {
+    // Folosește datele calculate din IndexedDB
+    if (!doctorProgressFromDB || doctorProgressFromDB.length === 0) {
+      return []
+    }
+    
+    // Adaugă culori pentru chart
+    return doctorProgressFromDB.map((doc, index) => ({
+      ...doc,
+      fill: `var(--chart-${(index % 5) + 1})`
+    }))
   }
 
   const getPopularTreatments = () => {
-    if (!Array.isArray(demoBusinessStatistics?.popularTreatments) || demoBusinessStatistics.popularTreatments.length === 0) {
+    // Dacă suntem offline, returnează array gol
+    if (isOffline) {
       return []
     }
-    return demoBusinessStatistics.popularTreatments.map((item, index) => ({
+    
+    if (!Array.isArray(businessStatistics?.popularTreatments) || businessStatistics.popularTreatments.length === 0) {
+      // Returnează array gol dacă nu există date din backend
+      return []
+    }
+    // Protejează valorile pentru a evita obiecte în JSX
+    return businessStatistics.popularTreatments.map(item => ({
       treatment: typeof item.treatment === 'string' ? item.treatment : (item.treatment?.name || 'Tratament'),
-      count: extractNumber(item.count),
-      fill: `var(--chart-${(index % 5) + 1})`
+      count: extractNumber(item.count)
     }))
   }
 
   // Chart data and config for website bookings
   const websiteChartData = [
-    { browser: "chrome", visitors: getWebsiteBookings(), fill: "var(--chart-2)" },
+    { browser: "chrome", visitors: getWebsiteBookings(), fill: "var(--color-safari)" },
   ]
 
   const websiteChartConfig = {
@@ -199,44 +253,14 @@ const KpiOverview = () => {
     },
   }
 
-  // Chart data for doctor progress
-  const doctorProgressData = demoDoctorProgress
+  // Chart data for doctor progress - dynamic data
+  const doctorProgressData = getDoctorProgress()
 
-  // Chart config pentru progresul medicilor - culori distincte pentru fiecare medic
-  const doctorProgressConfig = useMemo(() => {
-    const config = {
-      progress: {
-        label: "Progres",
-      },
-    }
-    // Adaugă culori distincte pentru fiecare medic
-    doctorProgressData.forEach((doctor, index) => {
-      config[`doctor_${index}`] = {
-        label: doctor.doctor,
-        color: `var(--chart-${(index % 5) + 1})`,
-      }
-    })
-    return config
-  }, [])
-
-  // Chart config for popular treatments - culori distincte pentru fiecare tratament
-  const treatmentsChartConfig = useMemo(() => {
-    const treatments = getPopularTreatments()
-    const config = {
-      count: {
-        label: "Număr",
-        color: "var(--chart-1)",
-      },
-    }
-    // Adaugă culori distincte pentru fiecare tratament
-    treatments.forEach((treatment, index) => {
-      config[`treatment_${index}`] = {
-        label: treatment.treatment,
-        color: `var(--chart-${(index % 5) + 1})`,
-      }
-    })
-    return config
-  }, [])
+  const doctorProgressConfig = {
+    progress: {
+      label: "Progres",
+    },
+  }
 
   // Get current month name in Romanian
   const getCurrentMonthName = () => {
@@ -247,9 +271,11 @@ const KpiOverview = () => {
     return months[new Date().getMonth()]
   }
 
-  // Transform recent activities from demo format to display format
+
+
+  // Transform recent activities from API format to display format
   const getRecentActivitiesData = () => {
-    if (!demoRecentActivities || demoRecentActivities.length === 0) {
+    if (!recentActivities || recentActivities.length === 0) {
       return [
         {
           type: 'no-data',
@@ -262,7 +288,7 @@ const KpiOverview = () => {
       ]
     }
 
-    return demoRecentActivities.map(activity => {
+    return recentActivities.map(activity => {
       // Map activity types to icons and colors
       const getActivityConfig = (activityType) => {
         switch (activityType) {
@@ -322,20 +348,31 @@ const KpiOverview = () => {
           parts.push(activity.action)
         }
         
-        // Add patient name if available
+        // Add user/medic/doctor name for user type activities
+        const userName = extractString(activity.userName)
+        const medicName = extractString(activity.medicName)
+        const doctorName = extractString(activity.doctorName)
+        
+        if (activity.activityType === 'user' || activity.activityType === 'medic' || activity.activityType === 'doctor') {
+          const name = userName || medicName || doctorName
+          if (name) {
+            parts.push(name)
+          }
+        }
+        
+        // Add patient name if available (safely extract from object or string)
         const patientName = extractString(activity.patientName)
         if (patientName && activity.activityType !== 'user' && activity.activityType !== 'medic' && activity.activityType !== 'doctor') {
           parts.push(`Pacient: ${patientName}`)
         }
         
-        // Add service/treatment name for appointments and treatments
+        // Add service/treatment name for appointments and treatments (safely extract)
         const serviceName = extractString(activity.serviceName) || extractString(activity.treatmentName) || extractString(activity.treatment)
         if ((activity.activityType === 'appointment' || activity.activityType === 'treatment') && serviceName) {
           parts.push(serviceName)
         }
         
-        // Add medic name for appointments
-        const medicName = extractString(activity.medicName)
+        // Add medic name for appointments (safely extract)
         if (activity.activityType === 'appointment' && medicName) {
           parts.push(medicName)
         }
@@ -345,11 +382,27 @@ const KpiOverview = () => {
           parts.push(`Ora: ${activity.time}`)
         }
         
+        // Add product name for sales/inventory (check multiple field names)
+        const productName = extractString(activity.productName) || 
+                           extractString(activity.product) || 
+                           extractString(activity.itemName) ||
+                           (activity.activityType === 'product' && extractString(activity.serviceName))
+        if ((activity.activityType === 'sale' || activity.activityType === 'inventory' || activity.activityType === 'product') && productName) {
+          parts.push(productName)
+        }
+
+        
+        // Add quantity for sales/inventory
+        if ((activity.activityType === 'sale' || activity.activityType === 'inventory' || activity.activityType === 'product') && activity.quantity) {
+          parts.push(`${activity.quantity} buc`)
+        }
+        
         // Add amount for invoices/payments/sales/treatments
         const amount = activity.amount || activity.price
         if ((activity.activityType === 'invoice' || activity.activityType === 'payment' || activity.activityType === 'sale' || activity.activityType === 'treatment') && amount) {
           parts.push(`${amount} RON`)
         }
+
         
         // Add status if available
         if (activity.status) {
@@ -365,7 +418,7 @@ const KpiOverview = () => {
           parts.push(statusLabels[activity.status] || activity.status)
         }
         
-        // Fallback to description or default
+        // Fallback to description or default (safely extract)
         if (parts.length === 0) {
           const description = extractString(activity.description) || extractString(activity.subtitle)
           return description || 'Activitate în sistem'
@@ -407,7 +460,7 @@ const KpiOverview = () => {
         type: activity.activityType || activity.type,
         title: getActivityTitle(activity),
         description: buildDescription(activity),
-        time: formatTime(activity.createdAt || activity.updatedAt || activity.timestamp),
+        time: formatTime(activity.updatedAt || activity.createdAt || activity.timestamp),
         icon: config.icon,
         color: config.color
       }
@@ -415,7 +468,7 @@ const KpiOverview = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Main Grid - 2 columns on large screens, 1 on small/medium */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
@@ -433,7 +486,7 @@ const KpiOverview = () => {
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-blue-600">
-                    {getTotalAppointments()}
+                    {loading ? '...' : getTotalAppointments()}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">Programate</p>
                 </div>
@@ -451,9 +504,9 @@ const KpiOverview = () => {
                     {getCurrentMonthName()}
                   </span>
                 </div>
-          <div>
+                <div>
                   <p className="text-3xl font-bold text-green-600">
-                    {getCompletedAppointments()}
+                    {loading ? '...' : getCompletedAppointments()}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">Realizate</p>
                 </div>
@@ -473,13 +526,13 @@ const KpiOverview = () => {
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-red-600">
-                    {getCancelledAppointments()}
+                    {loading ? '...' : getCancelledAppointments()}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">Anulate</p>
                 </div>
               </div>
             </div>
-        </div>
+          </div>
 
           {/* Pacienți Înregistrați */}
           <div className="card group hover:shadow-lg transition-shadow flex align-center justify-center">
@@ -493,7 +546,7 @@ const KpiOverview = () => {
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-purple-600">
-                    {getTotalPatients()}
+                    {loading ? '...' : getTotalPatients()}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">Pacienți</p>
                 </div>
@@ -505,7 +558,7 @@ const KpiOverview = () => {
           <div className="card group hover:shadow-lg transition-shadow flex align-center justify-center">
             <div className="card-content p-4 flex align-center justify-center">
               <div className="flex flex-col gap-2 flex align-center justify-center">
-              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between">
                   <DollarSign className="h-5 w-5 text-emerald-600" />
                   <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
                     {getCurrentMonthName()}
@@ -513,7 +566,7 @@ const KpiOverview = () => {
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-emerald-600">
-                    {getMonthlyRevenue().toLocaleString('ro-RO')}
+                    {loading ? '...' : getMonthlyRevenue().toLocaleString('ro-RO')}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">Încasări RON</p>
                 </div>
@@ -533,7 +586,7 @@ const KpiOverview = () => {
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-green-600">
-                    {`${getOccupancyRate()}%`}
+                    {loading ? '...' : `${getOccupancyRate()}%`}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">Grad de Ocupare</p>
                 </div>
@@ -692,11 +745,11 @@ const KpiOverview = () => {
                   </div>
                 </>
               )}
-              </div>
             </div>
+          </div>
 
           {/* Chart Bar - Tratamente Populare */}
-          {getPopularTreatments().length === 0 ? (
+          {isOffline || getPopularTreatments().length === 0 ? (
             <div className="card">
               <div className="card-header">
                 <h3 className="card-title">Tratamente populare</h3>
@@ -704,45 +757,23 @@ const KpiOverview = () => {
               </div>
               <div className="card-content">
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Activity className="h-12 w-12 text-muted-foreground mb-4" />
+                  <WifiOff className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-sm text-muted-foreground">
-                    Nu există date despre tratamente populare
+                    {isOffline ? 'Date indisponibile offline' : 'Nu există date despre tratamente populare'}
                   </p>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="card">
-              <div className="card-header">
-                <h3 className="card-title">Tratamente populare</h3>
-                <p className="text-sm text-muted-foreground">Cele mai solicitate tratamente luna aceasta</p>
-              </div>
-              <div className="card-content">
-                <ChartContainer config={treatmentsChartConfig}>
-                  <BarChart accessibilityLayer data={getPopularTreatments()}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      dataKey="treatment"
-                      tickLine={false}
-                      tickMargin={10}
-                      axisLine={false}
-                      tickFormatter={(value) => value.length > 10 ? value.slice(0, 10) + '...' : value}
-                    />
-                    <ChartTooltip
-                      cursor={false}
-                      content={<ChartTooltipContent hideLabel />}
-                    />
-                    <Bar dataKey="count" radius={8}>
-                      {getPopularTreatments().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              </div>
-            </div>
+            <ChartBarLabelCustom 
+              title="Tratamente populare" 
+              description="Cele mai solicitate tratamente luna aceasta"
+              data={getPopularTreatments()}
+              dataKey="count"
+              nameKey="treatment"
+            />
           )}
-        </div>
+      </div>
 
         {/* CASETA 4: Activități Recente */}
         <div className="card">
@@ -753,25 +784,31 @@ const KpiOverview = () => {
             </div>
           </div>
           <div className="card-content">
-            <div className="max-h-[700px] overflow-y-auto space-y-4 pr-2">
-              {getRecentActivitiesData().map((activity, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className={`h-10 w-10 rounded-full bg-muted flex items-center justify-center ${activity.color}`}>
-                    <activity.icon className="h-5 w-5" />
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <div className="max-h-[700px] overflow-y-auto space-y-4 pr-2">
+                {getRecentActivitiesData().map((activity, index) => (
+                  <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className={`h-10 w-10 rounded-full bg-muted flex items-center justify-center ${activity.color}`}>
+                      <activity.icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{activity.title}</p>
+                      <p className="text-sm text-muted-foreground">{activity.description}</p>
+                      {activity.time && (
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {activity.time}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{activity.title}</p>
-                    <p className="text-sm text-muted-foreground">{activity.description}</p>
-                    {activity.time && (
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {activity.time}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="card-footer">
             <button className="btn btn-outline btn-sm w-full">
@@ -785,4 +822,4 @@ const KpiOverview = () => {
   )
 }
 
-export default KpiOverview
+export default DashboardHome

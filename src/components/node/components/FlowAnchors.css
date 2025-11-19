@@ -1,0 +1,33 @@
+.flow-anchors {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.anchor-ring {
+  fill: #f9fbff;
+  stroke: #1a365d;
+  stroke-width: 2;
+  z-index: 5;
+}
+
+.anchor-ring--overlay {
+  pointer-events: none;
+}
+
+.anchor-ring--interactive {
+  pointer-events: all;
+  cursor: crosshair;
+  stroke-width: 2.25;
+  transition: stroke-width 0.15s ease, stroke 0.15s ease, fill 0.15s ease;
+}
+
+.anchor-ring--interactive:hover {
+  stroke-width: 2.75;
+}
+
+.anchor-ring--interactive:active {
+  stroke-width: 3;
+}
+

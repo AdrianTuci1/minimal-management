@@ -31,9 +31,13 @@ const TopBar = ({ onlineUsers = [], actions = [] }) => {
 
   const visibleUsers = useMemo(() => onlineUsers.slice(0, 4), [onlineUsers])
 
+  // View-uri care au nevoie de ActionBar
+  const viewsWithActionBar = ["programari", "pacienti", "medici", "tratamente"]
+  const shouldShowActionBar = viewsWithActionBar.includes(activeMenu)
+
   useEffect(() => {
     setIsMobileControlsOpen(false)
-  }, [activeMenu, actions])
+  }, [activeMenu])
 
   const getInitials = (user) => {
     if (user.initials) {
@@ -112,14 +116,7 @@ const TopBar = ({ onlineUsers = [], actions = [] }) => {
           </div>
         </div>
         <Separator className="bg-border/60" />
-
-        {/* Second row: ActionBar for Search, Filter buttons, and Calendar */}
-        {activeMenu !== "kpi" && (
-          <>
-            <ActionBar actions={actions} />
-            <Separator className="bg-border/60" />
-          </>
-        )}
+        {shouldShowActionBar && <ActionBar actions={actions} />}
       </header>
       <ShareSpotlight />
     </div>

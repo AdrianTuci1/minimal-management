@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
-  Calendar,
   GripVertical,
   RefreshCcw,
   ZoomIn,
@@ -54,19 +53,57 @@ const statusStyles = {
   "check-out": "bg-orange-500/10 text-orange-600",
 }
 
+const statusBgStyles = {
+  "confirmată": "bg-emerald-500/20",
+  "în curs": "bg-amber-500/20",
+  "nouă": "bg-blue-500/20",
+  "ocupată": "bg-red-500/20",
+  "disponibilă": "bg-emerald-500/20",
+  "check-out": "bg-orange-500/20",
+}
+
 // Mock rooms data pentru hotel
 const initialRooms = [
+  // Etaj 1
   { id: "room-101", number: "101", type: "Single", floor: 1, status: "disponibilă" },
   { id: "room-102", number: "102", type: "Double", floor: 1, status: "disponibilă" },
   { id: "room-103", number: "103", type: "Single", floor: 1, status: "disponibilă" },
   { id: "room-104", number: "104", type: "Double", floor: 1, status: "disponibilă" },
+  { id: "room-105", number: "105", type: "Single", floor: 1, status: "disponibilă" },
+  { id: "room-106", number: "106", type: "Double", floor: 1, status: "disponibilă" },
+  { id: "room-107", number: "107", type: "Single", floor: 1, status: "disponibilă" },
+  { id: "room-108", number: "108", type: "Double", floor: 1, status: "disponibilă" },
+  // Etaj 2
   { id: "room-201", number: "201", type: "Suite", floor: 2, status: "disponibilă" },
   { id: "room-202", number: "202", type: "Double", floor: 2, status: "disponibilă" },
   { id: "room-203", number: "203", type: "Single", floor: 2, status: "disponibilă" },
+  { id: "room-204", number: "204", type: "Double", floor: 2, status: "disponibilă" },
+  { id: "room-205", number: "205", type: "Single", floor: 2, status: "disponibilă" },
+  { id: "room-206", number: "206", type: "Double", floor: 2, status: "disponibilă" },
+  { id: "room-207", number: "207", type: "Suite", floor: 2, status: "disponibilă" },
+  { id: "room-208", number: "208", type: "Double", floor: 2, status: "disponibilă" },
+  // Etaj 3
   { id: "room-301", number: "301", type: "Suite", floor: 3, status: "disponibilă" },
+  { id: "room-302", number: "302", type: "Double", floor: 3, status: "disponibilă" },
+  { id: "room-303", number: "303", type: "Single", floor: 3, status: "disponibilă" },
+  { id: "room-304", number: "304", type: "Double", floor: 3, status: "disponibilă" },
+  { id: "room-305", number: "305", type: "Single", floor: 3, status: "disponibilă" },
+  { id: "room-306", number: "306", type: "Double", floor: 3, status: "disponibilă" },
+  { id: "room-307", number: "307", type: "Suite", floor: 3, status: "disponibilă" },
+  { id: "room-308", number: "308", type: "Double", floor: 3, status: "disponibilă" },
+  // Etaj 4
+  { id: "room-401", number: "401", type: "Suite", floor: 4, status: "disponibilă" },
+  { id: "room-402", number: "402", type: "Double", floor: 4, status: "disponibilă" },
+  { id: "room-403", number: "403", type: "Single", floor: 4, status: "disponibilă" },
+  { id: "room-404", number: "404", type: "Double", floor: 4, status: "disponibilă" },
+  { id: "room-405", number: "405", type: "Single", floor: 4, status: "disponibilă" },
+  { id: "room-406", number: "406", type: "Double", floor: 4, status: "disponibilă" },
 ]
 
-const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservationChange }) => {
+const HotelWhiteboard = ({ rooms, reservations = [], onReservationChange }) => {
+  // Folosește toate camerele disponibile - dacă nu se trimite prop rooms, folosește initialRooms
+  // Dacă se trimite rooms dar este gol sau limitat, folosește initialRooms
+  const allRooms = rooms && rooms.length > 0 ? rooms : initialRooms
   const boardRef = useRef(null)
   const [transform, setTransform] = useState({ scale: 1, translate: { x: 24, y: 24 } })
   const [dragState, setDragState] = useState(null)
@@ -113,7 +150,7 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
   const draggingReservationId = dragState?.type === "reservation" ? dragState.id : null
 
   const reservationsByRoom = useMemo(() => {
-    const map = Object.fromEntries(rooms.map((room) => [room.id, []]))
+    const map = Object.fromEntries(allRooms.map((room) => [room.id, []]))
 
     for (const reservation of reservations) {
       if (!map[reservation.roomId]) continue
@@ -129,7 +166,7 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
     }
 
     return map
-  }, [reservations, rooms])
+  }, [reservations, allRooms])
 
   // Animate elements with GSAP - only once per session
   useEffect(() => {
@@ -181,7 +218,7 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
       }
 
       // Room cards and columns
-      rooms.forEach((room, roomIndex) => {
+      allRooms.forEach((room, roomIndex) => {
         const delay = 0.4 + roomIndex * 0.2
 
         if (roomCardRefs.current[room.id]) {
@@ -231,7 +268,7 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
         tl.kill()
       }
     }
-  }, [rooms, reservations, reservationsByRoom])
+  }, [allRooms, reservations, reservationsByRoom])
 
   const getDayIndex = (dateString) => {
     const date = new Date(dateString)
@@ -358,7 +395,7 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
       clickReservationRef.current = reservationId
 
       const { x, y } = toBoardCoords(event.clientX, event.clientY)
-      const roomIndex = rooms.findIndex((room) => room.id === reservation.roomId)
+      const roomIndex = allRooms.findIndex((room) => room.id === reservation.roomId)
       const reservationStartDate = reservation.startDate || reservation.date || reservation.start
       const dayIndex = getDayIndex(reservationStartDate)
       const offsetX = x - (ROOM_COLUMN_WIDTH + dayIndex * SLOT_WIDTH)
@@ -421,7 +458,7 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
       const rowIndex = clamp(
         Math.floor(rawY / ROW_HEIGHT),
         0,
-        Math.max(0, rooms.length - 1),
+        Math.max(0, allRooms.length - 1),
       )
       const snappedDayIndex = clamp(
         Math.round(rawX / SLOT_WIDTH),
@@ -429,7 +466,7 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
         daysToShow - dragState.duration,
       )
 
-      const nextRoomId = rooms[rowIndex]?.id ?? reservation.roomId
+      const nextRoomId = allRooms[rowIndex]?.id ?? reservation.roomId
       const newStartDate = new Date(startDate)
       newStartDate.setDate(startDate.getDate() + snappedDayIndex)
       const newStartDateString = newStartDate.toISOString().split('T')[0]
@@ -512,8 +549,8 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
   )
 
   const gridTemplateRows = useMemo(
-    () => `48px repeat(${rooms.length}, ${ROW_HEIGHT}px)`,
-    [rooms.length],
+    () => `48px repeat(${allRooms.length}, ${ROW_HEIGHT}px)`,
+    [allRooms.length],
   )
 
   return (
@@ -631,57 +668,41 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
                   </div>
 
                   {/* Room rows */}
-                  {rooms.map((room, roomIndex) => {
+                  {allRooms.map((room, roomIndex) => {
                     const rowReservations = reservationsByRoom[room.id] ?? []
 
                     return (
                       <div key={`room-row-${room.id}`} style={{ display: 'contents' }}>
-                        {/* Coloana camerei */}
-                        <div className="relative">
+                        {/* Coloana camerei - prima coloană - doar numărul camerei */}
+                        <div 
+                          className="relative overflow-hidden"
+                          style={{ gridColumn: '1' }}
+                        >
                           <div
                             ref={(el) => {
                               if (el) roomCardRefs.current[room.id] = el
                             }}
-                            className="flex flex-col gap-1 rounded-lg border-2 border-border/80 bg-white px-3 py-2 shadow-md h-full"
+                            className="flex items-center justify-center rounded-lg border-2 border-border/80 bg-white px-3 py-2 shadow-md h-full z-20 relative"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Bed className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm font-semibold text-foreground">
-                                  Camera {room.number}
-                                </span>
-                              </div>
-                              <span className={cn(
-                                "h-2.5 w-2.5 rounded-full ring-2 ring-white shadow-sm",
-                                room.status === "disponibilă" ? "bg-emerald-500" :
-                                room.status === "ocupată" ? "bg-red-500" :
-                                "bg-amber-500"
-                              )} />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">
-                                {room.type}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                Etaj {room.floor}
-                              </span>
-                            </div>
+                            <span className="text-sm font-semibold text-foreground">
+                              {room.number}
+                            </span>
                           </div>
                         </div>
 
-                        {/* Coloana cu rezervări */}
+                        {/* Coloana cu rezervări - grid de rezervări (coloanele 2+) */}
                         <div
                           ref={(el) => {
                             if (el) roomColumnRefs.current[room.id] = el
                           }}
                           className={cn(
-                            "relative rounded-lg border-2 border-border/70 bg-white transition",
+                            "relative rounded-lg border-2 border-border/70 transition",
                             draggingReservationId && rowReservations.some((item) => item.id === draggingReservationId)
                               ? "ring-2 ring-primary/40 border-primary/60"
                               : "hover:border-primary/50"
                           )}
                           style={{ 
-                            gridColumn: `2 / -1`,
+                            gridColumn: `2 / -1`, // Grid de rezervări - începe de la coloana 2
                             height: ROW_HEIGHT 
                           }}
                         >
@@ -690,12 +711,19 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
                             const dayIndex = getDayIndex(reservationStartDate)
                             const duration = reservation.duration || reservation.durationDays || 1
                             
+                            // Asigură-te că rezervarea este în grid-ul de rezervări, nu în prima coloană
                             if (dayIndex < 0 || dayIndex >= daysToShow) return null
                             
+                            // Poziționare în grid-ul de rezervări (coloanele 2+)
+                            // left este relativ la containerul de rezervări care începe de la coloana 2
                             const left = dayIndex * SLOT_WIDTH
                             const width = duration * SLOT_WIDTH - 12
                             const nextStatusStyle = statusStyles[reservation.status] ?? "bg-muted text-foreground"
+                            const nextStatusBgStyle = statusBgStyles[reservation.status] ?? "bg-muted"
                             const isShortDuration = duration <= 1
+                            
+                            // Asigură-te că rezervarea nu apare în prima coloană
+                            if (left < 0) return null
 
                             const startDate = new Date(reservationStartDate)
                             const endDate = new Date(startDate)
@@ -707,7 +735,8 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
                                   <div
                                     data-reservation-id={reservation.id}
                                     className={cn(
-                                      "absolute z-10 flex h-full min-w-[100px] flex-col rounded-lg border-2 border-border/80 bg-white shadow-md transition-all overflow-hidden",
+                                      "absolute z-10 flex h-full min-w-[100px] flex-col rounded-lg border-2 border-border/80 shadow-md transition-all overflow-hidden",
+                                      nextStatusBgStyle, // Aplică culoarea de fundal în funcție de status
                                       isShortDuration ? "gap-1 px-2 py-1.5" : "gap-2 px-3 py-2",
                                       draggingReservationId === reservation.id
                                         ? "ring-2 ring-primary/60 shadow-xl border-primary"
@@ -751,7 +780,7 @@ const HotelWhiteboard = ({ rooms = initialRooms, reservations = [], onReservatio
                                           {reservation.guest || "Rezervare"}
                                         </span>
                                         {reservation.roomId && (() => {
-                                          const room = rooms.find(r => r.id === reservation.roomId)
+                                          const room = allRooms.find(r => r.id === reservation.roomId)
                                           return room && (
                                             <span className={cn(
                                               "text-muted-foreground truncate",

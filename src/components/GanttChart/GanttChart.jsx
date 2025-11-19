@@ -3,7 +3,7 @@ import Navigation from './Navigation';
 import TimelineHeader from './TimelineHeader';
 import GanttRow from './GanttRow';
 import TodayMarker from './TodayMarker';
-import { useGanttState, useResponsiveColumns } from './useGanttState';
+import { useResponsiveColumns } from './useGanttState';
 
 const HEADER_HEIGHT = 0;
 
@@ -11,7 +11,6 @@ const GanttChart = ({ data }) => {
   // Support both 'items' and 'spaces' for backward compatibility
   const items = data.items || data.spaces || [];
   
-  const { expandedItems, toggleExpanded } = useGanttState(items);
   const { columnWidth, sidebarWidth } = useResponsiveColumns();
   
   const timelineScrollRef = useRef(null);
@@ -21,14 +20,16 @@ const GanttChart = ({ data }) => {
   const scrollLeftRef = useRef(0);
   const scrollTopRef = useRef(0);
 
-  // Flatten items for rendering (including children when expanded)
+  // Flatten items for rendering - only include rooms, not reservations as separate rows
+  // Reservations will be rendered on the same row as their parent room
   const flattenItems = (items, level = 0) => {
     const result = [];
     for (const item of items) {
-      result.push({ ...item, level });
-      if (item.children && expandedItems[item.id]) {
-        result.push(...flattenItems(item.children, level + 1));
+      // Only add rooms to the flat list, not reservations
+      if (item.type === 'room' || level === 0) {
+        result.push({ ...item, level });
       }
+      // Don't add children as separate rows - they'll be rendered in the same row
     }
     return result;
   };
@@ -109,7 +110,7 @@ const GanttChart = ({ data }) => {
                 className="sticky left-0 z-40 bg-gray-50 border-r border-gray-200 flex items-center justify-center"
                 style={{ width: `${sidebarWidth}px` }}
               >
-                <span className="text-sm font-semibold text-gray-500">Tasks</span>
+                <span className="text-xs font-semibold text-gray-500">Camere</span>
               </div>
               
               {/* Timeline header */}
@@ -131,8 +132,6 @@ const GanttChart = ({ data }) => {
                 sidebarWidth={sidebarWidth}
                 columnWidth={columnWidth}
                 dateRange={data.dateRange}
-                expandedItems={expandedItems}
-                onToggle={toggleExpanded}
               />
             ))}
 

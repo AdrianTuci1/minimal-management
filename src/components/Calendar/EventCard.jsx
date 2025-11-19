@@ -16,29 +16,31 @@ const EventCard = ({ event, view, style, onClick }) => {
       onClick={onClick}
     >
       <div className="event-title">{title}</div>
-      
-      <div className="event-time-row">
-        <span className="event-time-badge">
-          {format(start, 'h:mm a')} - {format(end, 'h:mm a')}
-        </span>
-      </div>
 
+      <div className="event-card-footer">
       {attendees.length > 0 && view !== 'month' && (
-        <div className="event-attendees">
-          {attendees.slice(0, 3).map((attendee, index) => (
-            <img
-              key={attendee.id || index}
-              src={attendee.avatar}
-              alt={attendee.name}
-              className="attendee-avatar"
-              title={attendee.name}
-            />
-          ))}
-          {attendees.length > 3 && (
-            <div className="attendee-more">+{attendees.length - 3}</div>
-          )}
+          <div className="event-attendees">
+            {attendees.slice(0, 3).map((attendee, index) => (
+              <img
+                key={attendee.id || index}
+                src={attendee.avatar}
+                alt={attendee.name}
+                className="attendee-avatar"
+                title={attendee.name}
+              />
+            ))}
+            {attendees.length > 3 && (
+              <div className="attendee-more">+{attendees.length - 3}</div>
+            )}
+          </div>
+        )}
+        <div className="event-time-row">
+          <span className="event-time-badge">
+            {format(start, 'h:mm a')} - {format(end, 'h:mm a')}
+          </span>
         </div>
-      )}
+
+      </div>
     </div>
   );
 };
