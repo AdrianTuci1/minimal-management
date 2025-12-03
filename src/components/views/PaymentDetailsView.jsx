@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useSyncExternalStore } from "react"
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom"
 import useWorkspaceStore from "../../store/workspaceStore"
 import { getWorkspaceConfig } from "../../config/workspaceConfig"
@@ -8,30 +8,7 @@ import { Input } from "../ui/input"
 import { ArrowLeft, ArrowRight, Bed, CreditCard, Shield, Smartphone } from "lucide-react"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
-
-// Mock room types data (same as BookReservationView)
-const mockRoomTypes = [
-  {
-    id: "single",
-    name: "Camera Single",
-    price: 250,
-  },
-  {
-    id: "double",
-    name: "Camera Double",
-    price: 350,
-  },
-  {
-    id: "suite",
-    name: "Suite",
-    price: 550,
-  },
-  {
-    id: "family",
-    name: "Camera Family",
-    price: 450,
-  },
-]
+import { PaymentDetailsController } from "../../models/PaymentDetailsController"
 
 function PaymentDetailsView() {
   const { workspaceId } = useParams()
@@ -41,14 +18,6 @@ function PaymentDetailsView() {
   
   // Get reservation data from location state
   const reservationData = location.state || {}
-  const { checkIn, checkOut, selectedRooms } = reservationData
-
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    specialRequests: "",
-  })
 
   const workspace = useMemo(() => {
     return workspaces.find((ws) => ws.id === workspaceId) || null
@@ -59,28 +28,44 @@ function PaymentDetailsView() {
     return getWorkspaceConfig(workspace.type)
   }, [workspace])
 
-  // Calculate number of nights
-  const nights = useMemo(() => {
-    if (!checkIn || !checkOut) return 0
-    const checkInDate = checkIn instanceof Date ? checkIn : new Date(checkIn)
-    const checkOutDate = checkOut instanceof Date ? checkOut : new Date(checkOut)
-    const diffTime = checkOutDate.getTime() - checkInDate.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return Math.max(0, diffDays)
-  }, [checkIn, checkOut])
+  // Initialize controller
+  const controller = useMemo(() => {
+    if (!workspace || !workspaceConfig) return null;
+    return new PaymentDetailsController(workspaceId, reservationData, workspace, workspaceConfig);
+  }, [workspaceId, reservationData, workspace, workspaceConfig]);
 
-  // Calculate total price
-  const total = useMemo(() => {
-    if (nights === 0 || !selectedRooms) return 0
-    return Object.entries(selectedRooms).reduce((sum, [roomId, quantity]) => {
-      const roomType = mockRoomTypes.find((rt) => rt.id === roomId)
-      if (!roomType || quantity === 0) return sum
-      return sum + roomType.price * quantity * nights
-    }, 0)
-  }, [selectedRooms, nights])
+  // Sync state from controller
+  const formData = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.formData || { fullName: "", email: "", phone: "", specialRequests: "" }
+  )
+  const nights = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.nights || 0
+  )
+  const total = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.total || 0
+  )
+  const checkInDate = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.checkInDate || new Date()
+  )
+  const checkOutDate = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.checkOutDate || new Date()
+  )
+  const selectedRooms = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.selectedRooms || {}
+  )
+  const roomTypes = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.roomTypes || []
+  )
 
   // Redirect if no reservation data
-  if (!checkIn || !checkOut || !selectedRooms || Object.keys(selectedRooms).length === 0) {
+  if (!controller?.hasValidReservationData()) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
@@ -96,7 +81,7 @@ function PaymentDetailsView() {
     )
   }
 
-  if (!workspace || !workspaceConfig) {
+  if (!workspace || !workspaceConfig || !controller) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -105,23 +90,6 @@ function PaymentDetailsView() {
         </div>
       </div>
     )
-  }
-
-  const checkInDate = checkIn instanceof Date ? checkIn : new Date(checkIn)
-  const checkOutDate = checkOut instanceof Date ? checkOut : new Date(checkOut)
-
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // TODO: Implement payment processing
-    console.log("Processing payment", { formData, reservationData, total })
-    // Navigate to success page or show confirmation
   }
 
   return (
@@ -154,7 +122,7 @@ function PaymentDetailsView() {
                   <h2 className="text-lg font-semibold text-foreground mb-4">
                     Informații oaspeți
                   </h2>
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={(e) => { e.preventDefault(); controller.handleSubmit(); }} className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-foreground mb-1.5 block">
                         Nume complet *
@@ -162,7 +130,7 @@ function PaymentDetailsView() {
                       <Input
                         required
                         value={formData.fullName}
-                        onChange={(e) => handleInputChange("fullName", e.target.value)}
+                        onChange={(e) => controller.handleInputChange("fullName", e.target.value)}
                         placeholder="Nume complet"
                         className="rounded-none"
                       />
@@ -176,7 +144,7 @@ function PaymentDetailsView() {
                         type="email"
                         required
                         value={formData.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        onChange={(e) => controller.handleInputChange("email", e.target.value)}
                         placeholder="email@example.com"
                         className="rounded-none"
                       />
@@ -190,7 +158,7 @@ function PaymentDetailsView() {
                         type="tel"
                         required
                         value={formData.phone}
-                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        onChange={(e) => controller.handleInputChange("phone", e.target.value)}
                         placeholder="+40 123 456 789"
                         className="rounded-none"
                       />
@@ -202,7 +170,7 @@ function PaymentDetailsView() {
                       </label>
                       <textarea
                         value={formData.specialRequests}
-                        onChange={(e) => handleInputChange("specialRequests", e.target.value)}
+                        onChange={(e) => controller.handleInputChange("specialRequests", e.target.value)}
                         placeholder="Adăugați cerințe speciale sau observații..."
                         className="w-full min-h-[100px] rounded-none border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       />
@@ -267,7 +235,7 @@ function PaymentDetailsView() {
                   {/* Rooms */}
                   <div className="mb-4 pb-4 border-b border-border space-y-3">
                     {Object.entries(selectedRooms).map(([roomId, quantity]) => {
-                      const roomType = mockRoomTypes.find((rt) => rt.id === roomId)
+                      const roomType = roomTypes.find((rt) => rt.id === roomId)
                       if (!roomType || quantity === 0) return null
                       return (
                         <div key={roomId} className="flex items-start justify-between gap-2">
@@ -312,8 +280,8 @@ function PaymentDetailsView() {
                   <Button
                     size="lg"
                     className="w-full mt-6 rounded-none"
-                    onClick={handleSubmit}
-                    disabled={!formData.fullName || !formData.email || !formData.phone}
+                    onClick={controller.handleSubmit}
+                    disabled={!controller.isFormValid()}
                   >
                     Confirmă și plătește
                     <ArrowRight className="ml-2 h-4 w-4" />

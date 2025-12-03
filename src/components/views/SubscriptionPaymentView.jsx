@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useSyncExternalStore } from "react"
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom"
 import useWorkspaceStore from "../../store/workspaceStore"
 import { getWorkspaceConfig } from "../../config/workspaceConfig"
@@ -6,7 +6,7 @@ import { Card, CardContent } from "../ui/card"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { ArrowLeft, ArrowRight, CreditCard, Shield, Smartphone, Dumbbell, TrendingUp, CheckCircle2 } from "lucide-react"
-import { processSubscriptionPayment } from "../../services/subscriptionService"
+import { SubscriptionPaymentController } from "../../models/SubscriptionPaymentController"
 
 function SubscriptionPaymentView() {
   const { workspaceId } = useParams()
@@ -17,16 +17,6 @@ function SubscriptionPaymentView() {
   // Get subscription data from location state
   const subscription = location.state?.subscription || null
 
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    dateOfBirth: "",
-    objectives: "",
-  })
-  const [processing, setProcessing] = useState(false)
-  const [error, setError] = useState(null)
-
   const workspace = useMemo(() => {
     return workspaces.find((ws) => ws.id === workspaceId) || null
   }, [workspaces, workspaceId])
@@ -36,12 +26,28 @@ function SubscriptionPaymentView() {
     return getWorkspaceConfig(workspace.type)
   }, [workspace])
 
-  // Normalize workspace type
-  const normalizedWorkspaceType = workspaceConfig?.id || workspace?.type
-  const isFitness = normalizedWorkspaceType === "fitness"
+  // Initialize controller
+  const controller = useMemo(() => {
+    if (!workspace || !workspaceConfig) return null;
+    return new SubscriptionPaymentController(workspaceId, subscription, workspace, workspaceConfig, navigate);
+  }, [workspaceId, subscription, workspace, workspaceConfig, navigate]);
+
+  // Sync state from controller
+  const formData = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.formData || { fullName: "", email: "", phone: "", dateOfBirth: "", objectives: "" }
+  )
+  const processing = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.processing || false
+  )
+  const error = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.error || null
+  )
 
   // Redirect if no subscription data
-  if (!subscription) {
+  if (!controller?.hasValidSubscription()) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
@@ -57,7 +63,7 @@ function SubscriptionPaymentView() {
     )
   }
 
-  if (!workspace || !workspaceConfig || !isFitness) {
+  if (!workspace || !workspaceConfig || !controller || !controller.isFitness) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -66,44 +72,6 @@ function SubscriptionPaymentView() {
         </div>
       </div>
     )
-  }
-
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setProcessing(true)
-    setError(null)
-
-    try {
-      // Procesează plata prin serviciu (care va face apel către backend)
-      const result = await processSubscriptionPayment(workspaceId, subscription, formData)
-      
-      if (!result.success) {
-        setError(result.error || "Eroare la procesarea plății")
-        setProcessing(false)
-        return
-      }
-
-      // Navighează la pagina de confirmare cu token-ul temporar
-      navigate(`/workspace/${workspaceId}/public/confirm-subscription/${result.confirmationToken}`, {
-        state: {
-          subscription,
-          formData,
-          clientId: result.clientId,
-          accessUrl: result.accessUrl,
-        }
-      })
-    } catch (err) {
-      console.error("Payment error:", err)
-      setError("A apărut o eroare. Te rugăm să încerci din nou.")
-      setProcessing(false)
-    }
   }
 
   return (
@@ -136,7 +104,7 @@ function SubscriptionPaymentView() {
                   <h2 className="text-lg font-semibold text-foreground mb-4">
                     Informații personale
                   </h2>
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={(e) => { e.preventDefault(); controller.handleSubmit(); }} className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-foreground mb-1.5 block">
                         Nume complet *
@@ -144,7 +112,7 @@ function SubscriptionPaymentView() {
                       <Input
                         required
                         value={formData.fullName}
-                        onChange={(e) => handleInputChange("fullName", e.target.value)}
+                        onChange={(e) => controller.handleInputChange("fullName", e.target.value)}
                         placeholder="Nume complet"
                         className="rounded-none"
                       />
@@ -159,7 +127,7 @@ function SubscriptionPaymentView() {
                           type="email"
                           required
                           value={formData.email}
-                          onChange={(e) => handleInputChange("email", e.target.value)}
+                          onChange={(e) => controller.handleInputChange("email", e.target.value)}
                           placeholder="email@example.com"
                           className="rounded-none"
                         />
@@ -173,7 +141,7 @@ function SubscriptionPaymentView() {
                           type="tel"
                           required
                           value={formData.phone}
-                          onChange={(e) => handleInputChange("phone", e.target.value)}
+                          onChange={(e) => controller.handleInputChange("phone", e.target.value)}
                           placeholder="+40 123 456 789"
                           className="rounded-none"
                         />
@@ -187,7 +155,7 @@ function SubscriptionPaymentView() {
                       <Input
                         type="date"
                         value={formData.dateOfBirth}
-                        onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
+                        onChange={(e) => controller.handleInputChange("dateOfBirth", e.target.value)}
                         className="rounded-none"
                       />
                     </div>
@@ -198,7 +166,7 @@ function SubscriptionPaymentView() {
                       </label>
                       <textarea
                         value={formData.objectives}
-                        onChange={(e) => handleInputChange("objectives", e.target.value)}
+                        onChange={(e) => controller.handleInputChange("objectives", e.target.value)}
                         placeholder="Descrieți obiectivele dvs. de fitness..."
                         className="w-full min-h-[100px] rounded-none border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       />
@@ -310,8 +278,8 @@ function SubscriptionPaymentView() {
                   <Button
                     size="lg"
                     className="w-full mt-6 rounded-none"
-                    onClick={handleSubmit}
-                    disabled={!formData.fullName || !formData.email || !formData.phone || processing}
+                    onClick={controller.handleSubmit}
+                    disabled={!controller.isFormValid() || processing}
                   >
                     {processing ? "Se procesează..." : "Confirmă și plătește"}
                     {!processing && <ArrowRight className="ml-2 h-4 w-4" />}

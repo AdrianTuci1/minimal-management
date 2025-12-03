@@ -7,6 +7,7 @@ import { Button } from "../ui/button"
 import { Avatar, AvatarFallback } from "../ui/avatar"
 import { MapPin, Clock, Users } from "lucide-react"
 import { Separator } from "../ui/separator"
+import { ClientController } from "../../models/ClientController"
 
 // Mock collaborators/employees data
 const getWorkspaceEmployees = (workspaceId) => {
@@ -23,7 +24,7 @@ const getWorkspaceEmployees = (workspaceId) => {
 function ClientView() {
   const { workspaceId } = useParams()
   const { workspaces } = useWorkspaceStore()
-  
+
   const workspace = useMemo(() => {
     return workspaces.find((ws) => ws.id === workspaceId) || null
   }, [workspaces, workspaceId])
@@ -33,12 +34,17 @@ function ClientView() {
     return getWorkspaceConfig(workspace.type)
   }, [workspace])
 
+  const controller = useMemo(() => {
+    if (!workspace || !workspaceConfig) return null;
+    return new ClientController(workspace, workspaceConfig);
+  }, [workspace, workspaceConfig]);
+
   const employees = useMemo(() => {
     if (!workspace) return []
     return getWorkspaceEmployees(workspace.id)
   }, [workspace])
 
-  if (!workspace || !workspaceConfig) {
+  if (!workspace || !workspaceConfig || !controller) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -49,99 +55,13 @@ function ClientView() {
     )
   }
 
-  // Normalize workspace type using config
-  const normalizedWorkspaceType = workspaceConfig?.id || workspace.type
-
-  // Textul primului buton în funcție de tipul workspace
-  const getButtonText = () => {
-    switch (normalizedWorkspaceType) {
-      case "clinic":
-        return "Solicită o programare"
-      case "fitness":
-        return "Devin-o client"
-      case "hotel":
-        return "Rezervă"
-      default:
-        return "Solicită o programare"
-    }
-  }
-
-  // URL-ul pentru primul buton în funcție de tipul workspace
-  const getFirstButtonUrl = () => {
-    switch (normalizedWorkspaceType) {
-      case "clinic":
-        return `/workspace/${workspaceId}/public/request-appointment`
-      case "fitness":
-        return `/workspace/${workspaceId}/public/become-client`
-      case "hotel":
-        return `/workspace/${workspaceId}/public/book-reservation`
-      default:
-        return `/workspace/${workspaceId}/public/request-appointment`
-    }
-  }
-
-  // Textul celui de-al doilea buton în funcție de tipul workspace
-  const getSecondButtonText = () => {
-    switch (normalizedWorkspaceType) {
-      case "clinic":
-        return "Vezi serviciile"
-      case "fitness":
-        return "Vezi abonamente"
-      case "hotel":
-        return "Vezi serviciile"
-      default:
-        return "Vezi serviciile"
-    }
-  }
-
   // Date mock pentru adresă și program (în viitor vor fi din store)
   const address = workspace.address || "Strada Exemplu nr. 123, București"
   const email = workspace.email || "contact@example.com"
   const phone = workspace.phone || "+40 123 456 789"
   const description = workspace.description || `Bun venit la ${workspace.name}! Suntem dedicați să oferim servicii de cea mai înaltă calitate pentru clienții noștri. Echipa noastră de profesioniști cu experiență este pregătită să vă ajute și să vă ofere soluții personalizate care îndeplinesc toate nevoile și așteptările dumneavoastră. Ne străduim constant să îmbunătățim experiența clienților noștri prin inovație și atenție la detalii.`
-  
-  // Program de funcționare - 24/7 pentru hotel
-  const getSchedule = () => {
-    if (workspace.type === "hotel") {
-      return "24/7"
-    }
-    return workspace.schedule || {
-      weekdays: "Luni - Vineri: 09:00 - 18:00",
-      saturday: "Sâmbătă: 09:00 - 14:00",
-      sunday: "Duminică: Închis"
-    }
-  }
-  const schedule = getSchedule()
 
-  // Funcție pentru a determina dacă o zi nu este disponibilă
-  // Poate fi înlocuită cu date reale din store sau API
-  const isDateUnavailable = (date) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const dayDate = new Date(date)
-    dayDate.setHours(0, 0, 0, 0)
-    
-    // Zilele din trecut - indisponibile
-    if (dayDate < today) {
-      return true
-    }
-    
-    // Zilele de weekend - indisponibile (dacă nu e hotel)
-    if (workspace.type !== "hotel") {
-      const dayOfWeek = dayDate.getDay()
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        return true
-      }
-    }
-    
-    // Zilele prea îndepărtate - indisponibile (ex: peste 2 luni)
-    const daysDiff = Math.floor((dayDate - today) / (1000 * 60 * 60 * 24))
-    if (daysDiff > 60) {
-      return true
-    }
-    
-    return false
-  }
+  const schedule = controller.getSchedule()
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -195,7 +115,7 @@ function ClientView() {
                             className="h-8 w-8 border-2 border-background"
                             style={{ zIndex: employees.length - idx }}
                           >
-                            <AvatarFallback 
+                            <AvatarFallback
                               className="text-xs font-medium text-white"
                               style={{ backgroundColor: emp.color }}
                             >
@@ -208,9 +128,9 @@ function ClientView() {
                         {email}
                       </span>
                       <div className="flex items-center gap-1.5 ml-2">
-                        <img 
-                          src="/ro_flag.webp" 
-                          alt="România" 
+                        <img
+                          src="/ro_flag.webp"
+                          alt="România"
                           className="w-4 h-3 object-contain"
                         />
                         <span className="text-sm text-foreground">
@@ -260,21 +180,21 @@ function ClientView() {
                     <Calendar
                       mode="single"
                       className="rounded-md border w-full"
-                      isDateUnavailable={isDateUnavailable}
+                      isDateUnavailable={(date) => controller.isDateUnavailable(date)}
                       readOnly={true}
                     />
                   </div>
-                  
+
                   {/* Butoane: primul și al doilea buton */}
                   <div className="flex gap-2">
-                    <Link to={getFirstButtonUrl()} className="flex-1">
+                    <Link to={controller.getFirstButtonUrl()} className="flex-1">
                       <Button className="w-full" size="lg">
-                        {getButtonText()}
+                        {controller.getButtonText()}
                       </Button>
                     </Link>
                     <Link to={`/workspace/${workspaceId}/public/services`}>
                       <Button variant="outline" size="lg">
-                        {getSecondButtonText()}
+                        {controller.getSecondButtonText()}
                       </Button>
                     </Link>
                   </div>
@@ -289,4 +209,3 @@ function ClientView() {
 }
 
 export default ClientView
-

@@ -1,94 +1,21 @@
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useEffect, useSyncExternalStore } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import useWorkspaceStore from "../../store/workspaceStore"
 import { getWorkspaceConfig } from "../../config/workspaceConfig"
 import { Card, CardContent } from "../ui/card"
 import { Button } from "../ui/button"
-import { Input } from "../ui/input"
 import { Calendar } from "../ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 import { CalendarIcon, Bed, Users, Wifi, Coffee, ArrowRight, ArrowLeft, Tv, Wind, Bath, Home, Car, UtensilsCrossed, Waves, Square } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
-
-// Mock room types data
-const mockRoomTypes = [
-  {
-    id: "single",
-    name: "Cabana Single",
-    description: "Cabană intimă pentru 2 persoane, perfectă pentru o escapadă liniștită sau călătorii de afaceri.",
-    price: 250,
-    capacity: 2,
-    amenities: ["WiFi", "TV", "Aer condiționat", "Baie privată"],
-    image: '/cabin2.jpg',
-    available: 3,
-  },
-  {
-    id: "double",
-    name: "Cabana Doubla",
-    description: "Cabană spațioasă pentru 4 persoane, ideală pentru cupluri sau familii mici.",
-    price: 350,
-    capacity: 4,
-    amenities: ["WiFi", "TV", "Aer condiționat", "Baie privată", "Balcon"],
-    image: '/cabin3.jpg',
-    available: 5,
-  },
-  {
-    id: "suite",
-    name: "Suite",
-    description: "Cabană de lux cu living separat, gândită pentru până la 6 persoane și experiențe premium.",
-    price: 550,
-    capacity: 6,
-    amenities: ["WiFi", "TV", "Aer condiționat", "Baie privată", "Balcon", "Minibar", "Jacuzzi"],
-    image: '/cabin1.jpg',
-    available: 2,
-  },
-  {
-    id: "family",
-    name: "Cabin Family",
-    description: "Cabană generoasă pentru 4 persoane, concepută pentru familii sau grupuri de prieteni.",
-    price: 450,
-    capacity: 4,
-    amenities: ["WiFi", "TV", "Aer condiționat", "Baie privată", "Balcon", "Sufragerie"],
-    image: '/cabin4.webp',
-    available: 1,
-  },
-]
+import { BookReservationController } from "../../models/BookReservationController"
 
 function BookReservationView() {
   const { workspaceId } = useParams()
   const navigate = useNavigate()
   const { workspaces } = useWorkspaceStore()
-  
-  // Initialize dates: check-in tomorrow, check-out day after tomorrow
-  const getTomorrow = () => {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    tomorrow.setHours(0, 0, 0, 0)
-    return tomorrow
-  }
-  
-  const getDayAfterTomorrow = () => {
-    const dayAfter = new Date()
-    dayAfter.setDate(dayAfter.getDate() + 2)
-    dayAfter.setHours(0, 0, 0, 0)
-    return dayAfter
-  }
-  
-  const [checkIn, setCheckIn] = useState(() => getTomorrow())
-  const [checkOut, setCheckOut] = useState(() => getDayAfterTomorrow())
-  const [selectedRooms, setSelectedRooms] = useState({})
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640)
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
   
   const workspace = useMemo(() => {
     return workspaces.find((ws) => ws.id === workspaceId) || null
@@ -99,49 +26,61 @@ function BookReservationView() {
     return getWorkspaceConfig(workspace.type)
   }, [workspace])
 
-  // Calculate number of nights
-  const nights = useMemo(() => {
-    if (!checkIn || !checkOut) return 0
-    const diffTime = checkOut.getTime() - checkIn.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return Math.max(0, diffDays)
-  }, [checkIn, checkOut])
+  // Initialize controller
+  const controller = useMemo(() => {
+    if (!workspace || !workspaceConfig) return null;
+    return new BookReservationController(workspace, workspaceConfig);
+  }, [workspace, workspaceConfig]);
 
-  // Calculate total price
-  const total = useMemo(() => {
-    if (nights === 0) return 0
-    return Object.entries(selectedRooms).reduce((sum, [roomId, quantity]) => {
-      const roomType = mockRoomTypes.find((rt) => rt.id === roomId)
-      if (!roomType || quantity === 0) return sum
-      return sum + roomType.price * quantity * nights
-    }, 0)
-  }, [selectedRooms, nights])
+  // Sync state from controller
+  const checkIn = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.checkIn || null
+  )
+  const checkOut = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.checkOut || null
+  )
+  const selectedRooms = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.selectedRooms || {}
+  )
+  const isMobile = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.isMobile || false
+  )
+  const nights = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.nights || 0
+  )
+  const total = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.total || 0
+  )
+  const hasSelectedRooms = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.hasSelectedRooms || false
+  )
+  const buttonText = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.buttonText || "Detalii si plata"
+  )
 
-  // Handle room quantity change
-  const handleRoomQuantityChange = (roomId, delta) => {
-    setSelectedRooms((prev) => {
-      const current = prev[roomId] || 0
-      const newQuantity = Math.max(0, Math.min(current + delta, mockRoomTypes.find((rt) => rt.id === roomId)?.available || 0))
-      if (newQuantity === 0) {
-        const { [roomId]: _, ...rest } = prev
-        return rest
-      }
-      return { ...prev, [roomId]: newQuantity }
-    })
-  }
+  // Get room types from controller
+  const roomTypes = controller?.roomTypes || []
 
-  // Check if any rooms are selected
-  const hasSelectedRooms = Object.values(selectedRooms).some((qty) => qty > 0)
-
-  // Get button text based on selection
-  const getButtonText = () => {
-    if (!hasSelectedRooms) {
-      return "Detalii si plata"
+  useEffect(() => {
+    if (!controller) return;
+    
+    const checkMobile = () => {
+      controller.setMobile(window.innerWidth < 640)
     }
-    return "Detalii și plată"
-  }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [controller])
 
-  if (!workspace || !workspaceConfig) {
+  if (!workspace || !workspaceConfig || !controller) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -193,13 +132,7 @@ function BookReservationView() {
                     <Calendar
                       mode="single"
                       selected={checkIn}
-                      onSelect={(date) => {
-                        setCheckIn(date)
-                        // Reset check-out if it's before or equal to check-in
-                        if (checkOut && date && checkOut <= date) {
-                          setCheckOut(null)
-                        }
-                      }}
+                      onSelect={(date) => controller.setCheckIn(date)}
                       disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                       initialFocus
                     />
@@ -236,7 +169,7 @@ function BookReservationView() {
                     <Calendar
                       mode="single"
                       selected={checkOut}
-                      onSelect={setCheckOut}
+                      onSelect={(date) => controller.setCheckOut(date)}
                       disabled={(date) => 
                         !checkIn || date <= checkIn || date < new Date(new Date().setHours(0, 0, 0, 0))
                       }
@@ -266,7 +199,7 @@ function BookReservationView() {
             </div>
           ) : (
             <div className="space-y-4">
-              {mockRoomTypes.map((roomType) => {
+              {roomTypes.map((roomType) => {
                 const quantity = selectedRooms[roomType.id] || 0
                 const isAvailable = roomType.available > 0
 
@@ -342,7 +275,7 @@ function BookReservationView() {
                                 <Button
                                   variant="outline"
                                   size="icon"
-                                  onClick={() => handleRoomQuantityChange(roomType.id, -1)}
+                                  onClick={() => controller.handleRoomQuantityChange(roomType.id, -1)}
                                   disabled={quantity === 0}
                                   className="h-9 w-9 rounded-none"
                                 >
@@ -354,7 +287,7 @@ function BookReservationView() {
                                 <Button
                                   variant="outline"
                                   size="icon"
-                                  onClick={() => handleRoomQuantityChange(roomType.id, 1)}
+                                  onClick={() => controller.handleRoomQuantityChange(roomType.id, 1)}
                                   disabled={quantity >= roomType.available}
                                   className="h-9 w-9 rounded-none"
                                 >
@@ -402,19 +335,16 @@ function BookReservationView() {
               disabled={!hasSelectedRooms || !checkIn || !checkOut}
               onClick={() => {
                 if (hasSelectedRooms) {
-                  navigate(`/workspace/${workspaceId}/public/payment-details`, {
-                    state: {
-                      checkIn,
-                      checkOut,
-                      selectedRooms,
-                      total,
-                      nights,
-                    }
-                  })
+                  const reservationData = controller.submitReservation();
+                  if (reservationData) {
+                    navigate(`/workspace/${workspaceId}/public/payment-details`, {
+                      state: reservationData
+                    })
+                  }
                 }
               }}
             >
-              <span className="hidden sm:inline">{getButtonText()}</span>
+              <span className="hidden sm:inline">{buttonText}</span>
               <span className="sm:hidden">Continuă</span>
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useMemo, useEffect, useSyncExternalStore } from "react"
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom"
 import useWorkspaceStore from "../../store/workspaceStore"
 import { getWorkspaceConfig } from "../../config/workspaceConfig"
@@ -6,7 +6,7 @@ import { Card, CardContent } from "../ui/card"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { ArrowLeft, Lock, Mail, KeyRound } from "lucide-react"
-import { loginClient, confirmSubscription, requestPasswordReset, loginWithGoogle } from "../../services/subscriptionService"
+import { ClientLoginController } from "../../models/ClientLoginController"
 
 function ClientLoginView() {
   const { workspaceId } = useParams()
@@ -16,19 +16,44 @@ function ClientLoginView() {
   
   const { clientId, returnTo, subscription } = location.state || {}
   
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [showPasswordReset, setShowPasswordReset] = useState(false)
-  const [resetEmail, setResetEmail] = useState("")
-  const [resetLoading, setResetLoading] = useState(false)
-  const [resetSuccess, setResetSuccess] = useState(false)
-
   const workspace = workspaces.find((ws) => ws.id === workspaceId) || null
   const workspaceConfig = workspace ? getWorkspaceConfig(workspace.type) : null
+
+  // Initialize controller
+  const controller = useMemo(() => {
+    if (!workspace || !workspaceConfig) return null;
+    return new ClientLoginController(workspaceId, clientId, returnTo, subscription, navigate);
+  }, [workspaceId, clientId, returnTo, subscription, navigate, workspace, workspaceConfig]);
+
+  // Sync state from controller
+  const formData = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.formData || { email: "", password: "" }
+  )
+  const loading = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.loading || false
+  )
+  const error = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.error || null
+  )
+  const showPasswordReset = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.showPasswordReset || false
+  )
+  const resetEmail = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.resetEmail || ""
+  )
+  const resetLoading = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.resetLoading || false
+  )
+  const resetSuccess = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.resetSuccess || false
+  )
 
   useEffect(() => {
     // Dacă nu există clientId, redirect
@@ -37,121 +62,7 @@ function ClientLoginView() {
     }
   }, [clientId, workspaceId, navigate])
 
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-    setError(null)
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      // Login
-      const loginResult = await loginClient(workspaceId, formData)
-      
-      if (!loginResult.success) {
-        setError(loginResult.error || "Eroare la autentificare")
-        setLoading(false)
-        return
-      }
-
-      // După login reușit, confirmă abonamentul cu clientId
-      if (clientId) {
-        const confirmResult = await confirmSubscription(clientId, formData)
-        
-        if (!confirmResult.success) {
-          setError(confirmResult.error || "Eroare la confirmarea abonamentului")
-          setLoading(false)
-          return
-        }
-      }
-
-      // Navighează la returnTo sau dashboard
-      if (returnTo) {
-        navigate(returnTo)
-      } else {
-        navigate(`/workspace/${workspaceId}/client/dashboard`)
-      }
-    } catch (err) {
-      console.error("Login error:", err)
-      setError("A apărut o eroare. Te rugăm să încerci din nou.")
-      setLoading(false)
-    }
-  }
-
-  const handlePasswordReset = async (e) => {
-    e.preventDefault()
-    setResetLoading(true)
-    setError(null)
-
-    try {
-      const result = await requestPasswordReset(workspaceId, resetEmail)
-      
-      if (!result.success) {
-        setError(result.error || "Eroare la solicitarea resetării parolei")
-        setResetLoading(false)
-        return
-      }
-
-      setResetSuccess(true)
-      setResetLoading(false)
-    } catch (err) {
-      console.error("Password reset error:", err)
-      setError("A apărut o eroare. Te rugăm să încerci din nou.")
-      setResetLoading(false)
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      // TODO: În producție, va folosi Google OAuth SDK
-      // Pentru demo, simulăm obținerea token-ului
-      const mockGoogleToken = "mock_google_token_" + Date.now()
-      
-      const loginResult = await loginWithGoogle(workspaceId, mockGoogleToken)
-      
-      if (!loginResult.success) {
-        setError(loginResult.error || "Eroare la autentificarea cu Google")
-        setLoading(false)
-        return
-      }
-
-      // După login reușit cu Google, confirmă abonamentul dacă există clientId
-      if (clientId) {
-        const confirmResult = await confirmSubscription(clientId, {
-          email: loginResult.user.email,
-          authProvider: 'google',
-        })
-        
-        if (!confirmResult.success) {
-          setError(confirmResult.error || "Eroare la confirmarea abonamentului")
-          setLoading(false)
-          return
-        }
-      }
-
-      // Navighează la returnTo sau dashboard
-      if (returnTo) {
-        navigate(returnTo)
-      } else {
-        navigate(`/workspace/${workspaceId}/client/dashboard`)
-      }
-    } catch (err) {
-      console.error("Google login error:", err)
-      setError("A apărut o eroare. Te rugăm să încerci din nou.")
-      setLoading(false)
-    }
-  }
-
-  if (!workspace || !workspaceConfig) {
+  if (!workspace || !workspaceConfig || !controller) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -215,7 +126,7 @@ function ClientLoginView() {
             <CardContent className="p-6">
               {!showPasswordReset ? (
                 <>
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={(e) => { e.preventDefault(); controller.handleSubmit(); }} className="space-y-4">
                     {error && (
                       <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
                         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -232,7 +143,7 @@ function ClientLoginView() {
                           type="email"
                           required
                           value={formData.email}
-                          onChange={(e) => handleInputChange("email", e.target.value)}
+                          onChange={(e) => controller.handleInputChange("email", e.target.value)}
                           placeholder="email@example.com"
                           className="pl-9 rounded-none"
                         />
@@ -247,9 +158,9 @@ function ClientLoginView() {
                         <button
                           type="button"
                           onClick={() => {
-                            setShowPasswordReset(true)
-                            setResetEmail(formData.email)
-                            setError(null)
+                            controller.setShowPasswordReset(true)
+                            controller.setResetEmail(formData.email)
+                            controller.setError(null)
                           }}
                           className="text-xs text-primary hover:underline"
                         >
@@ -262,7 +173,7 @@ function ClientLoginView() {
                           type="password"
                           required
                           value={formData.password}
-                          onChange={(e) => handleInputChange("password", e.target.value)}
+                          onChange={(e) => controller.handleInputChange("password", e.target.value)}
                           placeholder="Introdu parola"
                           className="pl-9 rounded-none"
                         />
@@ -290,7 +201,7 @@ function ClientLoginView() {
                     variant="outline"
                     size="lg"
                     className="w-full rounded-none mt-6"
-                    onClick={handleGoogleLogin}
+                    onClick={controller.handleGoogleLogin}
                     disabled={loading}
                   >
                     <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -326,10 +237,10 @@ function ClientLoginView() {
                     <button
                       type="button"
                       onClick={() => {
-                        setShowPasswordReset(false)
-                        setResetEmail("")
-                        setResetSuccess(false)
-                        setError(null)
+                        controller.setShowPasswordReset(false)
+                        controller.setResetEmail("")
+                        controller.setResetSuccess(false)
+                        controller.setError(null)
                       }}
                       className="text-sm text-muted-foreground hover:text-foreground"
                     >
@@ -357,16 +268,16 @@ function ClientLoginView() {
                         variant="outline"
                         className="w-full rounded-none"
                         onClick={() => {
-                          setShowPasswordReset(false)
-                          setResetEmail("")
-                          setResetSuccess(false)
+                          controller.setShowPasswordReset(false)
+                          controller.setResetEmail("")
+                          controller.setResetSuccess(false)
                         }}
                       >
                         Închide
                       </Button>
                     </div>
                   ) : (
-                    <form onSubmit={handlePasswordReset} className="space-y-4">
+                    <form onSubmit={(e) => { e.preventDefault(); controller.handlePasswordReset(); }} className="space-y-4">
                       <div className="flex items-center gap-2 mb-2">
                         <KeyRound className="h-5 w-5 text-muted-foreground" />
                         <h3 className="text-lg font-semibold text-foreground">
@@ -393,7 +304,7 @@ function ClientLoginView() {
                             type="email"
                             required
                             value={resetEmail}
-                            onChange={(e) => setResetEmail(e.target.value)}
+                            onChange={(e) => controller.setResetEmail(e.target.value)}
                             placeholder="email@example.com"
                             className="pl-9 rounded-none"
                           />

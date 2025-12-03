@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useSyncExternalStore } from "react"
 import { useParams, Link } from "react-router-dom"
 import useWorkspaceStore from "../../store/workspaceStore"
 import { getWorkspaceConfig } from "../../config/workspaceConfig"
@@ -12,44 +12,12 @@ import { ArrowLeft, ArrowRight, Check, Clock, DollarSign } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
-
-// Generate time slots (every 30 minutes from 8:00 to 20:00)
-const generateTimeSlots = () => {
-  const slots = []
-  for (let hour = 8; hour < 20; hour++) {
-    for (let minute = 0; minute < 60; minute += 30) {
-      const timeInMinutes = hour * 60 + minute
-      slots.push({
-        timeInMinutes,
-        display: `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`,
-      })
-    }
-  }
-  return slots
-}
-
-// Mock function to check if a time slot is available
-const isSlotAvailable = (date, timeInMinutes) => {
-  const dayOfWeek = date.getDay()
-  const hour = Math.floor(timeInMinutes / 60)
-  
-  // Example: exclude some early morning slots on weekends
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    if (hour < 10) return false
-  }
-  
-  // Example: exclude lunch time (12:00-14:00)
-  if (hour >= 12 && hour < 14) {
-    return false
-  }
-  
-  return true
-}
+import { RequestAppointmentController } from "../../models/RequestAppointmentController"
 
 function RequestAppointmentView() {
   const { workspaceId } = useParams()
   const { workspaces } = useWorkspaceStore()
-  
+
   const workspace = useMemo(() => {
     return workspaces.find((ws) => ws.id === workspaceId) || null
   }, [workspaces, workspaceId])
@@ -59,119 +27,91 @@ function RequestAppointmentView() {
     return getWorkspaceConfig(workspace.type)
   }, [workspace])
 
+  // Initialize Controller
+  const controller = useMemo(() => new RequestAppointmentController(), [])
+
+  // Sync state from controller
+  const currentStep = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.currentStep
+  )
+  const selectedService = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.selectedService
+  )
+  const isCustomService = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.isCustomService
+  )
+  const selectedDate = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.selectedDate
+  )
+  const selectedTime = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.selectedTime
+  )
+  const formData = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.formData
+  )
+
   // Get available services/treatments
   const services = useMemo(() => {
     if (!workspace) return []
     return getDemoTreatments(workspace.type).filter(s => s.status === "Disponibil" || s.status === "Promovat")
   }, [workspace])
 
-  const timeSlots = useMemo(() => generateTimeSlots(), [])
+  const timeSlots = useMemo(() => controller.generateTimeSlots(), [controller])
 
-  // Step state
-  const [currentStep, setCurrentStep] = useState(1) // 1: service, 2: date/time, 3: contact, 4: confirmation
-
-  // Form state
-  const [selectedService, setSelectedService] = useState(null)
-  const [isCustomService, setIsCustomService] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    tomorrow.setHours(0, 0, 0, 0)
-    return tomorrow
-  })
-  const [selectedTime, setSelectedTime] = useState(null)
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    notes: "",
-  })
+  const availableSlots = useMemo(() => {
+    if (!selectedDate) return []
+    return timeSlots.filter(slot => controller.isSlotAvailable(selectedDate, slot.timeInMinutes))
+  }, [selectedDate, timeSlots, controller])
 
   const handleServiceSelect = (service) => {
-    setSelectedService(service)
-    setIsCustomService(false)
+    controller.selectService(service)
   }
 
   const handleCustomServiceToggle = () => {
-    setIsCustomService(true)
-    setSelectedService(null)
+    controller.toggleCustomService()
   }
 
   const handleContinueToDateTime = () => {
     const hasService = selectedService || isCustomService
     if (hasService) {
-      setCurrentStep(2)
+      controller.setStep(2)
     }
   }
 
   const handleContinueToContact = () => {
     if (selectedDate && selectedTime) {
-      setCurrentStep(3)
+      controller.setStep(3)
     }
   }
 
   const handleBackToService = () => {
-    setCurrentStep(1)
+    controller.setStep(1)
   }
 
   const handleBackToDateTime = () => {
-    setCurrentStep(2)
+    controller.setStep(2)
   }
 
   const handleDateSelect = (date) => {
-    setSelectedDate(date)
-    setSelectedTime(null) // Reset selected time when date changes
+    controller.selectDate(date)
   }
 
   const handleTimeSelect = (timeInMinutes) => {
-    setSelectedTime(timeInMinutes)
+    controller.selectTime(timeInMinutes)
   }
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-  }
-
-  const availableSlots = useMemo(() => {
-    if (!selectedDate) return []
-    return timeSlots.filter(slot => isSlotAvailable(selectedDate, slot.timeInMinutes))
-  }, [selectedDate, timeSlots])
-
-  const isFormValid = () => {
-    const hasService = selectedService || isCustomService
-    const hasDate = selectedDate !== null
-    const hasTime = selectedTime !== null
-    const hasName = formData.name.trim()
-    const hasPhone = formData.phone.trim()
-    const hasEmail = formData.email.trim()
-    
-    return hasService && hasDate && hasTime && hasName && hasPhone && hasEmail
+    controller.updateFormData(field, value)
   }
 
   const handleSubmit = () => {
-    const hasName = formData.name.trim()
-    const hasPhone = formData.phone.trim()
-    const hasEmail = formData.email.trim()
-    
-    if (!hasName || !hasPhone || !hasEmail) return
-
-    // Create full datetime
-    const appointmentDateTime = new Date(selectedDate)
-    const hours = Math.floor(selectedTime / 60)
-    const minutes = selectedTime % 60
-    appointmentDateTime.setHours(hours, minutes, 0, 0)
-
-    // Here you would typically send the data to an API
-    console.log("Submitting appointment request:", {
-      service: selectedService || { custom: "Altceva - nu se află în listă" },
-      dateTime: appointmentDateTime,
-      ...formData
-    })
-
-    // Move to confirmation step
-    setCurrentStep(4)
+    controller.submitRequest()
   }
 
   if (!workspace || !workspaceConfig) {
@@ -196,7 +136,7 @@ function RequestAppointmentView() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            
+
             <div className="flex-1 min-w-0">
               <h1 className="text-lg sm:text-xl font-semibold text-foreground truncate">
                 Solicită o programare
@@ -215,79 +155,79 @@ function RequestAppointmentView() {
           {/* Step 1: Service Selection */}
           {currentStep === 1 && (
             <div>
-            
-            {services.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                {services.map((service) => (
-                  <Card
-                    key={service.code}
-                    className={cn(
-                      "border border-border rounded-none cursor-pointer transition-colors",
-                      selectedService?.code === service.code
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-muted/50"
-                    )}
-                    onClick={() => handleServiceSelect(service)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-base font-semibold text-foreground">
-                              {service.name}
-                            </h3>
-                            {selectedService?.code === service.code && (
-                              <Check className="h-4 w-4 text-primary shrink-0" />
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="h-3.5 w-3.5" />
-                              <span>{service.duration}</span>
+
+              {services.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  {services.map((service) => (
+                    <Card
+                      key={service.code}
+                      className={cn(
+                        "border border-border rounded-none cursor-pointer transition-colors",
+                        selectedService?.code === service.code
+                          ? "border-primary bg-primary/5"
+                          : "hover:bg-muted/50"
+                      )}
+                      onClick={() => handleServiceSelect(service)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-base font-semibold text-foreground">
+                                {service.name}
+                              </h3>
+                              {selectedService?.code === service.code && (
+                                <Check className="h-4 w-4 text-primary shrink-0" />
+                              )}
                             </div>
-                            {service.price && (
+                            <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1.5">
-                                <DollarSign className="h-3.5 w-3.5" />
-                                <span>{service.price}</span>
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>{service.duration}</span>
                               </div>
-                            )}
+                              {service.price && (
+                                <div className="flex items-center gap-1.5">
+                                  <DollarSign className="h-3.5 w-3.5" />
+                                  <span>{service.price}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-
-            {/* Custom Service Option */}
-            <Card
-              className={cn(
-                "border border-border rounded-none cursor-pointer transition-colors",
-                isCustomService
-                  ? "border-primary bg-primary/5"
-                  : "hover:bg-muted/50"
-              )}
-              onClick={handleCustomServiceToggle}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-base font-semibold text-foreground">
-                        Altceva - nu se află în listă
-                      </h3>
-                      {isCustomService && (
-                        <Check className="h-4 w-4 text-primary shrink-0" />
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Descrieți problema sau serviciul dorit
-                    </p>
-                  </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
+              )}
+
+              {/* Custom Service Option */}
+              <Card
+                className={cn(
+                  "border border-border rounded-none cursor-pointer transition-colors",
+                  isCustomService
+                    ? "border-primary bg-primary/5"
+                    : "hover:bg-muted/50"
+                )}
+                onClick={handleCustomServiceToggle}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-base font-semibold text-foreground">
+                          Altceva - nu se află în listă
+                        </h3>
+                        {isCustomService && (
+                          <Check className="h-4 w-4 text-primary shrink-0" />
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Descrieți problema sau serviciul dorit
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -348,7 +288,7 @@ function RequestAppointmentView() {
           {/* Step 3: Contact Details */}
           {currentStep === 3 && (
             <div>
-              
+
               {/* Selected Service, Date & Time Summary */}
               <Card className="border border-border rounded-none mb-6 overflow-hidden">
                 <CardContent className="p-0">
@@ -369,10 +309,10 @@ function RequestAppointmentView() {
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Divider */}
                     <div className="h-px bg-border/50" />
-                    
+
                     {/* Date & Time */}
                     <div>
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
@@ -404,7 +344,7 @@ function RequestAppointmentView() {
                     className="rounded-none"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block text-foreground">
@@ -461,7 +401,7 @@ function RequestAppointmentView() {
                   Vă vom contacta în curând pentru a confirma programarea.
                 </p>
               </div>
-              
+
               <div className="border border-border rounded-none p-6 bg-muted/30 text-left max-w-md mx-auto">
                 <h3 className="font-semibold text-foreground mb-4">Detalii programare</h3>
                 <div className="space-y-2 text-sm">
@@ -519,7 +459,7 @@ function RequestAppointmentView() {
                 </Button>
               </>
             )}
-            
+
             {currentStep === 2 && (
               <>
                 <Button
@@ -556,7 +496,7 @@ function RequestAppointmentView() {
                 <Button
                   size="lg"
                   className="shrink-0 px-6 md:px-8 rounded-none"
-                  disabled={!formData.name.trim() || !formData.phone.trim() || !formData.email.trim()}
+                  disabled={!controller.isFormValid()}
                   onClick={handleSubmit}
                 >
                   <span className="hidden sm:inline">Trimite solicitarea</span>
@@ -583,4 +523,3 @@ function RequestAppointmentView() {
 }
 
 export default RequestAppointmentView
-

@@ -1,20 +1,16 @@
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useEffect, useSyncExternalStore } from "react"
 import { useParams, Link, useLocation } from "react-router-dom"
 import useWorkspaceStore from "../../store/workspaceStore"
 import { getWorkspaceConfig } from "../../config/workspaceConfig"
 import { Card, CardContent } from "../ui/card"
 import { Button } from "../ui/button"
 import { ArrowLeft, ExternalLink, Download, CheckCircle2 } from "lucide-react"
-import { getConfirmationToken, markConfirmationTokenAsUsed } from "../../services/subscriptionService"
+import { ConfirmSubscriptionController } from "../../models/ConfirmSubscriptionController"
 
 function ConfirmSubscriptionView() {
   const { workspaceId, token } = useParams()
   const location = useLocation()
   const { workspaces } = useWorkspaceStore()
-  
-  const [tokenData, setTokenData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   
   const workspace = useMemo(() => {
     return workspaces.find((ws) => ws.id === workspaceId) || null
@@ -25,37 +21,45 @@ function ConfirmSubscriptionView() {
     return getWorkspaceConfig(workspace.type)
   }, [workspace])
 
-  // Normalize workspace type
-  const normalizedWorkspaceType = workspaceConfig?.id || workspace?.type
-  const isFitness = normalizedWorkspaceType === "fitness"
+  // Initialize controller
+  const controller = useMemo(() => {
+    if (!workspace || !workspaceConfig) return null;
+    return new ConfirmSubscriptionController(workspaceId, token, workspace, workspaceConfig);
+  }, [workspaceId, token, workspace, workspaceConfig]);
+
+  // Sync state from controller
+  const tokenData = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.tokenData || null
+  )
+  const loading = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.loading || true
+  )
+  const error = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.error || null
+  )
+  const subscription = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.subscription || null
+  )
+  const clientId = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.clientId || null
+  )
+  const accessUrl = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.accessUrl || null
+  )
 
   useEffect(() => {
-    const loadTokenData = async () => {
-      if (!token) {
-        setError("Token lipsă")
-        setLoading(false)
-        return
-      }
-
-      const result = await getConfirmationToken(token)
-      
-      if (!result.success) {
-        setError(result.error || "Token invalid")
-        setLoading(false)
-        return
-      }
-
-      setTokenData(result.data)
-      setLoading(false)
-      
-      // Marchează token-ul ca folosit (one-time use)
-      markConfirmationTokenAsUsed(token)
+    if (controller) {
+      controller.loadTokenData();
     }
+  }, [controller]);
 
-    loadTokenData()
-  }, [token])
-
-  if (!workspace || !workspaceConfig || !isFitness) {
+  if (!workspace || !workspaceConfig || !controller || !controller.isFitness) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -93,11 +97,7 @@ function ConfirmSubscriptionView() {
     )
   }
 
-  const subscription = tokenData.clientData?.subscription
-  const clientId = tokenData.clientId
-  const accessUrl = `${window.location.origin}/workspace/${workspaceId}/${clientId}`
-
-  if (!subscription || !clientId) {
+  if (!controller.hasValidData()) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
@@ -111,10 +111,6 @@ function ConfirmSubscriptionView() {
         </div>
       </div>
     )
-  }
-
-  const handleOpenLink = () => {
-    window.open(accessUrl, '_blank')
   }
 
   return (
@@ -208,7 +204,7 @@ function ConfirmSubscriptionView() {
                     </div>
                   </div>
                   <Button 
-                    onClick={handleOpenLink}
+                    onClick={controller.handleOpenLink}
                     className="w-full"
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
@@ -254,7 +250,7 @@ function ConfirmSubscriptionView() {
                     </div>
                   </div>
                   <Button 
-                    onClick={handleOpenLink}
+                    onClick={controller.handleOpenLink}
                     className="w-full"
                     variant="outline"
                   >

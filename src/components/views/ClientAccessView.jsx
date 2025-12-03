@@ -1,52 +1,29 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useSyncExternalStore } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { getClientData, checkClientAuth } from "../../services/subscriptionService"
+import { ClientAccessController } from "../../models/ClientAccessController"
 
 function ClientAccessView() {
   const { workspaceId, clientId } = useParams()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  
+  // Initialize controller
+  const controller = useMemo(() => {
+    return new ClientAccessController(workspaceId, clientId, navigate);
+  }, [workspaceId, clientId, navigate]);
+
+  // Sync state from controller
+  const loading = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.loading
+  )
+  const error = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.error
+  )
 
   useEffect(() => {
-    const handleClientAccess = async () => {
-      if (!clientId) {
-        navigate(`/workspace/${workspaceId}/public?error=missing_client_id`)
-        return
-      }
-
-      // Verifică datele clientului
-      const clientResult = await getClientData(clientId)
-      
-      if (!clientResult.success) {
-        navigate(`/workspace/${workspaceId}/public?error=invalid_client`, {
-          state: { error: clientResult.error }
-        })
-        return
-      }
-
-      // Verifică dacă utilizatorul este deja autentificat
-      const authResult = await checkClientAuth()
-      
-      if (authResult.authenticated && authResult.session?.clientId === clientId) {
-        // Utilizator autentificat - redirect la dashboard
-        navigate(`/workspace/${workspaceId}/client/dashboard`)
-      } else {
-        // Utilizator neautentificat - redirect la login cu clientId
-        navigate(`/workspace/${workspaceId}/client-login`, {
-          state: {
-            clientId,
-            returnTo: `/workspace/${workspaceId}/${clientId}`,
-            subscription: clientResult.data.subscription,
-          }
-        })
-      }
-      
-      setLoading(false)
-    }
-
-    handleClientAccess()
-  }, [clientId, workspaceId, navigate])
+    controller.handleClientAccess();
+  }, [controller]);
 
   if (loading) {
     return (

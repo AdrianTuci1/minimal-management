@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useEffect, useSyncExternalStore } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import useWorkspaceStore from "../../store/workspaceStore"
 import { getWorkspaceConfig } from "../../config/workspaceConfig"
@@ -6,67 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { ArrowLeft, ArrowRight, Calendar, Users, Dumbbell, Heart, TrendingUp, Star } from "lucide-react"
-
-// Mock subscription/packages data pentru fitness
-const mockSubscriptions = [
-  {
-    id: "standard",
-    name: "Abonament Standard",
-    description: "Acces nelimitat la sală, inclusiv toate zonele de antrenament și echipamentele.",
-    price: 250,
-    duration: "1 lună",
-    features: ["Acces nelimitat", "Toate echipamentele", "Consultatii antrenori", "Program grup"],
-    popular: false,
-    available: true,
-  },
-  {
-    id: "premium",
-    name: "Abonament Premium",
-    description: "Tot ce include Standard, plus antrenament personal și consultații nutriționale.",
-    price: 450,
-    duration: "1 lună",
-    features: ["Tot din Standard", "Antrenament personal", "Consultatii nutriție", "Prioritate programare"],
-    popular: true,
-    available: true,
-  },
-  {
-    id: "personal",
-    name: "Pachet Antrenament Personal",
-    description: "10 ședințe de antrenament personal cu un antrenor dedicat.",
-    price: 1200,
-    duration: "10 ședințe",
-    features: ["10 ședințe personalizate", "Plan de antrenament", "Suport nutrițional", "Flexibilitate programare"],
-    popular: false,
-    available: true,
-  },
-  {
-    id: "nutrition",
-    name: "Consult Nutriție",
-    description: "Consultație individuală cu nutriționist pentru plan alimentar personalizat.",
-    price: 300,
-    duration: "1 consultație",
-    features: ["Plan alimentar", "Evaluare corp", "Consultatii follow-up", "Suport online"],
-    popular: false,
-    available: true,
-  },
-]
+import { BecomeClientController } from "../../models/BecomeClientController"
 
 function BecomeClientView() {
   const { workspaceId } = useParams()
   const navigate = useNavigate()
   const { workspaces } = useWorkspaceStore()
-  
-  const [selectedSubscription, setSelectedSubscription] = useState(null)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640)
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
   
   const workspace = useMemo(() => {
     return workspaces.find((ws) => ws.id === workspaceId) || null
@@ -77,13 +22,41 @@ function BecomeClientView() {
     return getWorkspaceConfig(workspace.type)
   }, [workspace])
 
-  // Normalize workspace type
-  const normalizedWorkspaceType = workspaceConfig?.id || workspace?.type
+  // Initialize controller
+  const controller = useMemo(() => {
+    if (!workspace || !workspaceConfig) return null;
+    return new BecomeClientController(workspace, workspaceConfig);
+  }, [workspace, workspaceConfig]);
 
-  // Check if fitness workspace
-  const isFitness = normalizedWorkspaceType === "fitness"
+  // Sync state from controller
+  const selectedSubscription = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.selectedSubscription || null
+  )
+  const isMobile = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.isMobile || false
+  )
+  const formData = useSyncExternalStore(
+    (callback) => controller?.subscribe(callback) || (() => {}),
+    () => controller?.formData || {}
+  )
 
-  if (!workspace || !workspaceConfig) {
+  useEffect(() => {
+    if (!controller) return;
+    
+    const checkMobile = () => {
+      controller.setMobile(window.innerWidth < 640)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [controller])
+
+  // Get subscriptions from controller
+  const subscriptions = controller?.subscriptions || []
+
+  if (!workspace || !workspaceConfig || !controller) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -95,7 +68,7 @@ function BecomeClientView() {
   }
 
   // If not fitness, show old form (for backward compatibility)
-  if (!isFitness) {
+  if (!controller.isFitness) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
@@ -125,22 +98,40 @@ function BecomeClientView() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">Nume complet</label>
-                    <Input placeholder="Introduceți numele complet" />
+                    <Input 
+                      placeholder="Introduceți numele complet" 
+                      value={formData.name || ""}
+                      onChange={(e) => controller.updateFormData("name", e.target.value)}
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-2 block">Telefon</label>
-                    <Input type="tel" placeholder="+40 123 456 789" />
+                    <Input 
+                      type="tel" 
+                      placeholder="+40 123 456 789" 
+                      value={formData.phone || ""}
+                      onChange={(e) => controller.updateFormData("phone", e.target.value)}
+                    />
                   </div>
                 </div>
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">Email</label>
-                  <Input type="email" placeholder="email@example.com" />
+                  <Input 
+                    type="email" 
+                    placeholder="email@example.com" 
+                    value={formData.email || ""}
+                    onChange={(e) => controller.updateFormData("email", e.target.value)}
+                  />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">Data nașterii</label>
-                  <Input type="date" />
+                  <Input 
+                    type="date" 
+                    value={formData.birthDate || ""}
+                    onChange={(e) => controller.updateFormData("birthDate", e.target.value)}
+                  />
                 </div>
 
                 <div>
@@ -148,11 +139,24 @@ function BecomeClientView() {
                   <textarea
                     className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     placeholder="Descrieți obiectivele dvs. de fitness..."
+                    value={formData.objectives || ""}
+                    onChange={(e) => controller.updateFormData("objectives", e.target.value)}
                   />
                 </div>
 
                 <div className="flex gap-4">
-                  <Button className="flex-1" size="lg">
+                  <Button 
+                    className="flex-1" 
+                    size="lg"
+                    onClick={() => {
+                      const result = controller.submitForm();
+                      if (result) {
+                        // Handle form submission
+                        console.log("Form submitted:", result);
+                      }
+                    }}
+                    disabled={!controller.isFormValid()}
+                  >
                     Devin client
                   </Button>
                   <Link to={`/workspace/${workspaceId}/public`}>
@@ -197,7 +201,7 @@ function BecomeClientView() {
       <main className="flex-1 container mx-auto px-4 py-6 md:py-8 pb-24 md:pb-32">
         <div className="max-w-4xl mx-auto">
           <div className="space-y-4">
-            {mockSubscriptions.map((subscription) => {
+            {subscriptions.map((subscription) => {
               const isSelected = selectedSubscription?.id === subscription.id
 
               return (
@@ -211,7 +215,7 @@ function BecomeClientView() {
                     }
                     ${subscription.popular ? "relative" : ""}
                   `}
-                  onClick={() => setSelectedSubscription(subscription)}
+                  onClick={() => controller.selectSubscription(subscription)}
                 >
                   {subscription.popular && (
                     <div className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useSyncExternalStore } from "react"
 
 import Sidebar from "../Sidebar"
 import TopBar from "../TopBar"
@@ -19,6 +19,7 @@ import { getDrawerInputs } from "../../config/drawerInputs"
 import { clinicAppointmentsData } from "../../config/demoCalendarData"
 import { hotelReservationsData, fitnessWorkoutData } from "../../config/demoGanttData"
 import { Calendar as CalendarIcon, Save, Trash2 } from "lucide-react"
+import { WorkspaceController } from "../../models/WorkspaceController"
 
 const initialOnlineUsers = [
   {
@@ -66,7 +67,7 @@ const addDays = (date, days) => {
 
 const initialHotelReservations = (() => {
   const monday = getMondayOfCurrentWeek()
-  
+
   return [
     {
       id: "res-1",
@@ -165,11 +166,30 @@ function WorkspaceView({ workspace }) {
   const { getLabel, workspaceType, config } = useWorkspaceConfig()
   const initialDoctors = useMemo(() => getDemoDoctors(workspaceType), [workspaceType])
   const initialAppointments = useMemo(() => getDemoAppointments(workspaceType, initialDoctors), [workspaceType, initialDoctors])
-  const initialClients = useMemo(() => getDemoClients(workspaceType), [workspaceType])
-  
-  const [appointments, setAppointments] = useState(initialAppointments)
-  const [reservations, setReservations] = useState(initialHotelReservations)
-  const [formData, setFormData] = useState({})
+
+  // Initialize Controller
+  const controller = useMemo(() => {
+    return new WorkspaceController(workspaceType, {
+      appointments: initialAppointments,
+      reservations: initialHotelReservations
+    })
+  }, [workspaceType, initialAppointments])
+
+  // Sync state from controller
+  const appointments = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.appointments
+  )
+
+  const reservations = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.reservations
+  )
+
+  const formData = useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.formData
+  )
 
   const {
     activeMenu,
@@ -193,11 +213,6 @@ function WorkspaceView({ workspace }) {
 
   const doctors = useMemo(() => initialDoctors, [initialDoctors])
   const onlineUsers = useMemo(() => initialOnlineUsers, [])
-
-  // Update appointments when workspace type changes
-  useEffect(() => {
-    setAppointments(initialAppointments)
-  }, [initialAppointments])
 
   // Sync appointments to store
   useEffect(() => {
@@ -233,184 +248,66 @@ function WorkspaceView({ workspace }) {
     setActiveMenu(menu)
   }
 
-  const handleAppointmentChange = (appointmentId, nextValues) => {
-    setAppointments((current) =>
-      current.map((appointment) =>
-        appointment.id === appointmentId
-          ? {
-              ...appointment,
-              ...nextValues,
-            }
-          : appointment,
-      ),
-    )
-    updateAppointment(appointmentId, nextValues)
-  }
-
   const handleAppointmentDoubleClick = (appointment) => {
     openDrawer("programari", appointment, "edit")
   }
 
   const handleAppointmentFieldChange = (fieldId, value) => {
     const isCreateMode = drawerMode === "create"
-    
-    if (isCreateMode) {
-      // In create mode, update formData
-      let updatedValue = value
-      
-      // Parse time format (HH:MM) to minutes for start field
-      if (fieldId === "start") {
-        const timeMatch = value.match(/^(\d{1,2}):(\d{2})$/)
-        if (timeMatch) {
-          const hours = parseInt(timeMatch[1], 10)
-          const minutes = parseInt(timeMatch[2], 10)
-          updatedValue = hours * 60 + minutes
+    controller.handleFieldChange(fieldId, value, isCreateMode, drawerData?.id)
+
+    // If editing, also update the drawer data in the store immediately for UI responsiveness
+    if (!isCreateMode && drawerData) {
+      // We need to know if we are updating an appointment or a reservation
+      // The controller has already updated its internal state
+      // We just need to reflect that in the drawer
+      if (workspaceType === "hotel") {
+        const updated = controller.reservations.find(r => r.id === drawerData.id)
+        if (updated) openDrawer("programari", updated, "edit")
+      } else {
+        const updated = controller.appointments.find(a => a.id === drawerData.id)
+        if (updated) {
+          openDrawer("programari", updated, "edit")
+          updateAppointment(drawerData.id, { [fieldId]: value }) // Keep store in sync
         }
       }
-
-      // Parse duration to number if it's a number field
-      if (fieldId === "duration") {
-        updatedValue = parseInt(value, 10) || 0
-      }
-
-      // Parse durationDays to number for hotel
-      if (fieldId === "durationDays") {
-        updatedValue = parseInt(value, 10) || 1
-      }
-
-      // For fitness, also update startMinutes when start changes
-      if (fieldId === "start" && workspaceType === "fitness") {
-        setFormData((prev) => ({
-          ...prev,
-          [fieldId]: updatedValue,
-          startMinutes: updatedValue,
-        }))
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          [fieldId]: updatedValue,
-        }))
-      }
-      return
-    }
-
-    // Edit mode - existing logic
-    if (!drawerData) return
-    
-    // For hotel reservations, update reservations array instead of appointments
-    if (workspaceType === "hotel") {
-      let updatedValue = value
-      
-      // Parse durationDays to number for hotel
-      if (fieldId === "durationDays") {
-        updatedValue = parseInt(value, 10) || 1
-      }
-      
-      const nextValues = {
-        [fieldId]: updatedValue,
-      }
-      
-      handleReservationChange(drawerData.id, nextValues)
-      
-      // Update drawerData in store to reflect changes immediately
-      const updatedReservation = reservations.find((res) => res.id === drawerData.id)
-      if (updatedReservation) {
-        openDrawer("programari", { ...updatedReservation, ...nextValues }, "edit")
-      }
-      return
-    }
-
-    // Parse time format (HH:MM) to minutes for start field
-    let updatedValue = value
-    if (fieldId === "start") {
-      const timeMatch = value.match(/^(\d{1,2}):(\d{2})$/)
-      if (timeMatch) {
-        const hours = parseInt(timeMatch[1], 10)
-        const minutes = parseInt(timeMatch[2], 10)
-        updatedValue = hours * 60 + minutes
-      }
-    }
-
-    // Parse duration to number if it's a number field
-    if (fieldId === "duration") {
-      updatedValue = parseInt(value, 10) || 0
-    }
-
-    const nextValues = {
-      [fieldId]: updatedValue,
-    }
-
-    // For fitness, also update startMinutes when start changes
-    if (fieldId === "start" && workspaceType === "fitness") {
-      nextValues.startMinutes = updatedValue
-    }
-
-    handleAppointmentChange(drawerData.id, nextValues)
-    
-    // Update drawerData in store to reflect changes immediately
-    const updatedAppointment = appointments.find((apt) => apt.id === drawerData.id)
-    if (updatedAppointment) {
-      openDrawer("programari", { ...updatedAppointment, ...nextValues }, "edit")
     }
   }
-  
+
   const handleDeleteReservation = () => {
     if (!drawerData || !drawerData.id) return
-    
+
     if (window.confirm("Sigur doriți să ștergeți această rezervare?")) {
-      setReservations((current) => {
-        const updated = current.filter((res) => res.id !== drawerData.id)
-        return updated
-      })
+      controller.deleteReservation(drawerData.id)
       closeDrawer()
     }
   }
 
   const handleSaveAppointment = () => {
     const isCreateMode = drawerMode === "create"
-    
+
     if (isCreateMode) {
-      // For hotel reservations, use handleSaveReservation
       if (workspaceType === "hotel") {
-        handleSaveReservation()
-        return
+        controller.createReservation(formData)
+      } else {
+        const newAppt = controller.createAppointment(formData)
+        // Also update store
+        setStoreAppointments([...appointments, newAppt])
       }
-      
-      // Create new appointment for clinic/fitness
-      const newAppointment = {
-        id: `appt-${Date.now()}`,
-        ...formData,
-        // Set default status if not provided
-        status: formData.status || "nouă",
-        // For fitness, ensure startMinutes is set
-        ...(workspaceType === "fitness" && !formData.startMinutes && formData.start
-          ? { startMinutes: formData.start }
-          : {}),
-      }
-      
-      setAppointments((current) => {
-        const updated = [...current, newAppointment]
-        setStoreAppointments(updated)
-        return updated
-      })
       closeDrawer()
-      setFormData({})
+      controller.resetFormData()
     } else {
-      // In edit mode, changes are already saved via handleAppointmentFieldChange
-      // But we can still close the drawer to confirm save
       closeDrawer()
     }
   }
 
   const handleDeleteAppointment = () => {
     if (!drawerData || !drawerData.id) return
-    
+
     if (window.confirm("Sigur doriți să ștergeți această programare?")) {
-      setAppointments((current) => {
-        const updated = current.filter((apt) => apt.id !== drawerData.id)
-        setStoreAppointments(updated)
-        return updated
-      })
+      controller.deleteAppointment(drawerData.id)
+      // Update store
+      setStoreAppointments(appointments.filter(a => a.id !== drawerData.id))
       closeDrawer()
     }
   }
@@ -418,48 +315,13 @@ function WorkspaceView({ workspace }) {
   // Reset formData when drawer opens in create mode, or populate with initial data
   useEffect(() => {
     if (drawerMode === "create" && isDrawerOpen && drawerViewId === "programari") {
-      // If drawerData contains initial data (from empty area click), use it
       if (drawerData && Object.keys(drawerData).length > 0) {
-        setFormData(drawerData)
+        controller.setFormData(drawerData)
       } else {
-        setFormData({})
+        controller.resetFormData()
       }
     }
-  }, [drawerMode, isDrawerOpen, drawerViewId, drawerData])
-
-  const handleReservationChange = (reservationId, nextValues) => {
-    setReservations((current) =>
-      current.map((reservation) =>
-        reservation.id === reservationId
-          ? {
-              ...reservation,
-              ...nextValues,
-            }
-          : reservation,
-      ),
-    )
-  }
-
-  const handleSaveReservation = () => {
-    const isCreateMode = drawerMode === "create"
-    
-    if (isCreateMode && workspaceType === "hotel") {
-      // Create new hotel reservation
-      const newReservation = {
-        id: `res-${Date.now()}`,
-        ...formData,
-        // Set default status if not provided
-        status: formData.status || "nouă",
-      }
-      
-      setReservations((current) => {
-        const updated = [...current, newReservation]
-        return updated
-      })
-      closeDrawer()
-      setFormData({})
-    }
-  }
+  }, [drawerMode, isDrawerOpen, drawerViewId, drawerData, controller])
 
   const handleOpenSpotlight = () => {
     setIsSpotlightOpen(true)
@@ -472,10 +334,6 @@ function WorkspaceView({ workspace }) {
   const handleSpotlightSelect = (item) => {
     item?.onSelect?.()
     setIsSpotlightOpen(false)
-  }
-
-  const handleJumpToToday = () => {
-    setSelectedDate(new Date())
   }
 
   const spotlightItems = useMemo(() => [
@@ -605,7 +463,7 @@ function WorkspaceView({ workspace }) {
         if (config.id === "hotel" || workspaceType === "hotel") {
           return (
             <div className="w-full h-full">
-              <GanttChart data={hotelReservationsData} />
+              <GanttChart data={reservations} />
             </div>
           )
         }
@@ -621,7 +479,7 @@ function WorkspaceView({ workspace }) {
         return (
           <div className="w-full h-full">
             <Calendar
-              events={clinicAppointmentsData}
+              events={appointments}
               currentView={calendarView}
               currentDate={selectedDate}
               onEventClick={handleAppointmentDoubleClick}
@@ -673,10 +531,10 @@ function WorkspaceView({ workspace }) {
         const drawerFields = getDrawerInputs("programari", workspaceType)
         const isCreateMode = drawerMode === "create"
         const displayData = isCreateMode ? formData : drawerData
-        
+
         // Build actions array
         const drawerActions = []
-        
+
         if (isCreateMode) {
           drawerActions.push({
             id: "save",
@@ -701,7 +559,7 @@ function WorkspaceView({ workspace }) {
             onClick: workspaceType === "hotel" ? handleDeleteReservation : handleDeleteAppointment,
           })
         }
-        
+
         return (
           <Drawer
             open={isDrawerOpen && drawerViewId === "programari"}
@@ -710,75 +568,75 @@ function WorkspaceView({ workspace }) {
             tabs={
               !isCreateMode
                 ? [
-                    {
-                      id: "details",
-                      icon: CalendarIcon,
-                      content: (
-                        <DrawerContent>
-                          <>
-                            {drawerData && (
-                              <div className="mb-6 flex items-center gap-4 pb-6 border-b border-border">
-                                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                  <span className="text-lg font-bold text-primary">
-                                    {workspaceType === "fitness"
-                                      ? (drawerData.clientName || "N/A")
-                                          .split(" ")
-                                          .map((part) => part[0])
-                                          .join("")
-                                          .slice(0, 2)
-                                          .toUpperCase()
-                                      : (drawerData.patient || "N/A")
-                                          .split(" ")
-                                          .map((part) => part[0])
-                                          .join("")
-                                          .slice(0, 2)
-                                          .toUpperCase()}
-                                  </span>
-                                </div>
-                                <div>
-                                  <h3 className="text-xl font-semibold text-foreground">
-                                    {workspaceType === "fitness"
-                                      ? drawerData.clientName || "Programare nouă"
-                                      : drawerData.patient || "Programare nouă"}
-                                  </h3>
-                                  {workspaceType === "fitness" ? (
-                                    drawerData.training && (
-                                      <p className="text-sm text-muted-foreground">{drawerData.training}</p>
-                                    )
-                                  ) : (
-                                    drawerData.treatment && (
-                                      <p className="text-sm text-muted-foreground">{drawerData.treatment}</p>
-                                    )
-                                  )}
-                                </div>
+                  {
+                    id: "details",
+                    icon: CalendarIcon,
+                    content: (
+                      <DrawerContent>
+                        <>
+                          {drawerData && (
+                            <div className="mb-6 flex items-center gap-4 pb-6 border-b border-border">
+                              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                                <span className="text-lg font-bold text-primary">
+                                  {workspaceType === "fitness"
+                                    ? (drawerData.clientName || "N/A")
+                                      .split(" ")
+                                      .map((part) => part[0])
+                                      .join("")
+                                      .slice(0, 2)
+                                      .toUpperCase()
+                                    : (drawerData.patient || "N/A")
+                                      .split(" ")
+                                      .map((part) => part[0])
+                                      .join("")
+                                      .slice(0, 2)
+                                      .toUpperCase()}
+                                </span>
                               </div>
-                            )}
-                            {drawerFields.map((field) => {
-                              const value = field.accessor(displayData || {})
-                              const isEditable = field.editable
+                              <div>
+                                <h3 className="text-xl font-semibold text-foreground">
+                                  {workspaceType === "fitness"
+                                    ? drawerData.clientName || "Programare nouă"
+                                    : drawerData.patient || "Programare nouă"}
+                                </h3>
+                                {workspaceType === "fitness" ? (
+                                  drawerData.training && (
+                                    <p className="text-sm text-muted-foreground">{drawerData.training}</p>
+                                  )
+                                ) : (
+                                  drawerData.treatment && (
+                                    <p className="text-sm text-muted-foreground">{drawerData.treatment}</p>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {drawerFields.map((field) => {
+                            const value = field.accessor(displayData || {})
+                            const isEditable = field.editable
 
-                              return (
-                                <DrawerField
-                                  key={field.id}
-                                  label={field.label}
-                                  type={field.type}
-                                  editable={isEditable}
-                                  value={value}
-                                  onChange={(newValue) => handleAppointmentFieldChange(field.id, newValue)}
-                                >
-                                  {!isEditable && field.render ? (
-                                    field.render(value)
-                                  ) : !isEditable ? (
-                                    <div className="text-base text-foreground">{value || "-"}</div>
-                                  ) : null}
-                                </DrawerField>
-                              )
-                            })}
-                          </>
-                        </DrawerContent>
-                      ),
-                    },
-                  ]
+                            return (
+                              <DrawerField
+                                key={field.id}
+                                label={field.label}
+                                type={field.type}
+                                editable={isEditable}
+                                value={value}
+                                onChange={(newValue) => handleAppointmentFieldChange(field.id, newValue)}
+                              >
+                                {!isEditable && field.render ? (
+                                  field.render(value)
+                                ) : !isEditable ? (
+                                  <div className="text-base text-foreground">{value || "-"}</div>
+                                ) : null}
+                              </DrawerField>
+                            )
+                          })}
+                        </>
+                      </DrawerContent>
+                    ),
+                  },
+                ]
                 : undefined
             }
             defaultTab="details"
@@ -798,7 +656,9 @@ function WorkspaceView({ workspace }) {
                         editable={true}
                         value={value}
                         onChange={(newValue) => handleAppointmentFieldChange(field.id, newValue)}
-                      />
+                      >
+                        {field.render ? field.render(value) : null}
+                      </DrawerField>
                     )
                   })}
                 </>
@@ -812,4 +672,3 @@ function WorkspaceView({ workspace }) {
 }
 
 export default WorkspaceView
-
