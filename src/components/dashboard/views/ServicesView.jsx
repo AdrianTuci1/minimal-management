@@ -4,46 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Briefcase, ExternalLink, Calendar, Clock, User, MapPin, Phone, Mail, Package, ChevronDown, ChevronUp } from "lucide-react"
+import { Briefcase, ExternalLink, Calendar, Clock, User, MapPin, Phone, Mail, Package, ChevronDown, ChevronUp, QrCode, Home, UserCheck } from "lucide-react"
 import useWorkspaceStore from "../../../store/workspaceStore"
 import { getWorkspaceConfig } from "../../../config/workspaceConfig"
 import { checkClientAuth } from "../../../services/subscriptionService"
-import { FitnessClientArea, HotelClientArea, ClinicClientArea } from "../../client-areas"
 
 function ServicesView() {
   const navigate = useNavigate()
   const { currentUser, workspaces } = useWorkspaceStore()
   const [expandedServices, setExpandedServices] = useState({})
-  const [clientDataMap, setClientDataMap] = useState({})
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [activeTab, setActiveTab] = useState("active") // "active" or "inactive"
+  const [showQRCode, setShowQRCode] = useState(false)
 
   // Verifică autentificarea clientului
   useEffect(() => {
     const checkAuth = async () => {
       const authResult = await checkClientAuth()
       setIsAuthenticated(authResult.authenticated)
-      
-      if (authResult.authenticated) {
-        // Încarcă datele clientului pentru fiecare serviciu
-        try {
-          const clients = JSON.parse(localStorage.getItem('subscriptionClients') || '{}')
-          const session = authResult.session
-          
-          const clientData = {}
-          Object.values(clients).forEach(client => {
-            const matchesSession = session.clientId === client.clientId
-            const matchesEmail = session.email && client.formData?.email === session.email
-            
-            if (matchesSession || matchesEmail) {
-              clientData[client.workspaceId] = client
-            }
-          })
-          
-          setClientDataMap(clientData)
-        } catch (error) {
-          console.error('Error loading client data:', error)
-        }
-      }
     }
     
     checkAuth()
@@ -90,6 +67,7 @@ function ServicesView() {
             confirmed: client.confirmed,
             createdAt: client.createdAt,
             confirmedAt: client.confirmedAt,
+            type: client.subscription.type || 'fitness', // Adăugăm tipul serviciului
           })
         }
       })
@@ -101,8 +79,88 @@ function ServicesView() {
     }
   }, [currentUser.email])
 
+  // Servicii dummy pentru demonstrație
+  const dummyServices = [
+    {
+      id: 'fitness-dummy',
+      name: 'Abonament Fitness Premium',
+      description: 'Acces complet la sală, piscine și clase de grup',
+      price: 299,
+      duration: 'Lunar',
+      type: 'fitness',
+      confirmed: true,
+      confirmedAt: new Date('2023-11-15').toISOString(),
+      workspaceId: 'fitness-1',
+      isDummy: true,
+      details: {
+        qrCode: 'FIT-2023-12345',
+        accessLevel: 'Premium',
+        validUntil: '31.12.2023',
+        facilities: ['Sală de forță', 'Piscină', 'Saună', 'Clase de grup']
+      }
+    },
+    {
+      id: 'hotel-dummy',
+      name: 'Rezervare Hotel Ocean View',
+      description: 'Camera dublă cu vedere la mare, all-inclusive',
+      price: 1200,
+      duration: '7 nopți',
+      type: 'hotel',
+      confirmed: true,
+      confirmedAt: new Date('2023-10-20').toISOString(),
+      workspaceId: 'hotel-1',
+      isDummy: true,
+      details: {
+        roomType: 'Camera Dublă Deluxe',
+        checkIn: '15.07.2023',
+        checkOut: '22.07.2023',
+        address: 'Strada Litoralului nr. 45, Mamaia',
+        amenities: ['All-inclusive', 'Vedere la mare', 'Balcon', 'Aer condiționat']
+      }
+    },
+    {
+      id: 'clinic-dummy',
+      name: 'Programare la Dentist',
+      description: 'Consult și igienizare completă',
+      price: 450,
+      duration: '2 ore',
+      type: 'clinic',
+      confirmed: false,
+      confirmedAt: null,
+      workspaceId: 'clinic-1',
+      isDummy: true,
+      details: {
+        dentistName: 'Dr. Popescu Andrei',
+        specialization: 'Stomatologie generală',
+        location: 'Cabinetul Smile Perfect',
+        address: 'Strada Zorilor nr. 12, Cluj-Napoca',
+        phone: '+40 264 123 456',
+        appointmentDate: '20.12.2023',
+        appointmentTime: '14:30'
+      }
+    }
+  ]
+
+  // Combină serviciile reale cu cele dummy
+  const allServices = [...userServices, ...dummyServices]
+
+  // Filtrează serviciile active/inactive
+  const filteredServices = allServices.filter(service => {
+    if (activeTab === "active") {
+      return service.confirmed === true
+    } else {
+      return service.confirmed === false
+    }
+  })
+
   const handleViewWorkspace = (workspaceId) => {
     navigate(`/workspace/${workspaceId}`)
+  }
+
+  const handleShowQRCode = (service) => {
+    if (service.type === 'fitness') {
+      setShowQRCode(service.id)
+    }
   }
 
   return (
@@ -114,13 +172,42 @@ function ServicesView() {
         </p>
       </div>
 
-      {userServices.length === 0 ? (
+      {/* Tab-uri pentru servicii active/inactive */}
+      <div className="flex space-x-1 rounded-lg bg-muted p-1 text-sm font-medium">
+        <button
+          className={`rounded-md px-3 py-1.5 transition-all ${
+            activeTab === "active"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={() => setActiveTab("active")}
+        >
+          Active
+        </button>
+        <button
+          className={`rounded-md px-3 py-1.5 transition-all ${
+            activeTab === "inactive"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={() => setActiveTab("inactive")}
+        >
+          Inactive
+        </button>
+      </div>
+
+      {filteredServices.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nu ai servicii active</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {activeTab === "active" ? "Nu ai servicii active" : "Nu ai servicii inactive"}
+            </h3>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-4">
-              Abonamentele și serviciile tale vor apărea aici când te vei înregistra pentru un abonament.
+              {activeTab === "active" 
+                ? "Abonamentele și serviciile tale active vor apărea aici."
+                : "Serviciile tale inactive sau expirate vor apărea aici."
+              }
             </p>
             <Button variant="outline" onClick={() => navigate('/')}>
               Explorează servicii
@@ -129,22 +216,27 @@ function ServicesView() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          {userServices.map((service) => {
+          {filteredServices.map((service) => {
             const workspace = workspaces.find(ws => ws.id === service.workspaceId)
             const workspaceConfig = workspace ? getWorkspaceConfig(workspace.type) : null
-            const clientData = clientDataMap[service.workspaceId]
             const isExpanded = expandedServices[service.id]
+            const showQR = showQRCode === service.id
             
-            const address = workspace?.address || "Strada Exemplu nr. 123, București"
+            const address = workspace?.address || service.details?.address || "Strada Exemplu nr. 123, București"
             const email = workspace?.email || "contact@example.com"
-            const phone = workspace?.phone || "+40 123 456 789"
+            const phone = workspace?.phone || service.details?.phone || "+40 123 456 789"
 
             return (
               <Card key={service.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg mb-1">{service.name}</CardTitle>
+                      <CardTitle className="text-lg mb-1 flex items-center gap-2">
+                        {service.type === 'fitness' && <User className="h-5 w-5 text-blue-500" />}
+                        {service.type === 'hotel' && <Home className="h-5 w-5 text-green-500" />}
+                        {service.type === 'clinic' && <UserCheck className="h-5 w-5 text-purple-500" />}
+                        {service.name}
+                      </CardTitle>
                       <CardDescription className="line-clamp-2">
                         {service.description}
                       </CardDescription>
@@ -159,7 +251,6 @@ function ServicesView() {
                           Neconfirmat
                         </Badge>
                       )}
-                      {isAuthenticated && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -172,7 +263,6 @@ function ServicesView() {
                             <ChevronDown className="h-4 w-4" />
                           )}
                         </Button>
-                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -192,7 +282,7 @@ function ServicesView() {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Briefcase className="h-4 w-4" />
-                          <span className="truncate">{workspace.name}</span>
+                          <span className="truncate">{workspace.name || service.details?.location}</span>
                         </div>
                         <Button
                           variant="ghost"
@@ -213,28 +303,140 @@ function ServicesView() {
                     </div>
                   )}
 
-                  {/* Zona de client expandată - doar pentru clienți autentificați */}
-                  {isAuthenticated && isExpanded && workspace && workspaceConfig && (
+                  {/* Detalii extinse pentru serviciu */}
+                  {isExpanded && (
                     <div className="pt-4 border-t border-border">
-                      {(() => {
-                        const commonProps = {
-                          workspace,
-                          workspaceConfig,
-                          clientData,
-                          subscription: service,
-                        }
-                        
-                        switch (workspaceConfig.id) {
-                          case "fitness":
-                            return <FitnessClientArea {...commonProps} />
-                          case "hotel":
-                            return <HotelClientArea {...commonProps} />
-                          case "clinic":
-                            return <ClinicClientArea {...commonProps} />
-                          default:
-                            return <ClinicClientArea {...commonProps} />
-                        }
-                      })()}
+                      {service.type === 'fitness' && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium">Detalii Abonament</h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleShowQRCode(service)}
+                            >
+                              <QrCode className="h-4 w-4 mr-2" />
+                              Cod QR
+                            </Button>
+                          </div>
+                          
+                          {showQR && (
+                            <div className="bg-muted p-4 rounded-md text-center">
+                              <div className="bg-white p-4 rounded-md inline-block">
+                                <div className="w-32 h-32 bg-gray-200 flex items-center justify-center mx-auto mb-2">
+                                  <QrCode className="h-16 w-16 text-gray-500" />
+                                </div>
+                                <p className="text-xs font-mono">{service.details?.qrCode || 'FIT-2023-12345'}</p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Nivel acces:</span>
+                              <p className="font-medium">{service.details?.accessLevel || 'Standard'}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Valabil până:</span>
+                              <p className="font-medium">{service.details?.validUntil || '31.12.2023'}</p>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <span className="text-muted-foreground text-sm">Facilități incluse:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {(service.details?.facilities || ['Sală de forță', 'Piscină', 'Saună']).map((facility, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {facility}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {service.type === 'hotel' && (
+                        <div className="space-y-3">
+                          <h4 className="font-medium">Detalii Rezervare</h4>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Tip cameră:</span>
+                              <p className="font-medium">{service.details?.roomType || 'Camera Dublă'}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Durată:</span>
+                              <p className="font-medium">{service.duration}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Check-in:</span>
+                              <p className="font-medium">{service.details?.checkIn || '15.07.2023'}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Check-out:</span>
+                              <p className="font-medium">{service.details?.checkOut || '22.07.2023'}</p>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <span className="text-muted-foreground text-sm">Adresă:</span>
+                            <p className="font-medium">{address}</p>
+                          </div>
+                          
+                          <div>
+                            <span className="text-muted-foreground text-sm">Facilități:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {(service.details?.amenities || ['All-inclusive', 'Vedere la mare']).map((amenity, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {amenity}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {service.type === 'clinic' && (
+                        <div className="space-y-3">
+                          <h4 className="font-medium">Detalii Programare</h4>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Medic:</span>
+                              <p className="font-medium">{service.details?.dentistName || 'Dr. Popescu Andrei'}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Specializare:</span>
+                              <p className="font-medium">{service.details?.specialization || 'Stomatologie generală'}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Data:</span>
+                              <p className="font-medium">{service.details?.appointmentDate || '20.12.2023'}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Ora:</span>
+                              <p className="font-medium">{service.details?.appointmentTime || '14:30'}</p>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <span className="text-muted-foreground text-sm">Locație:</span>
+                            <p className="font-medium">{service.details?.location || 'Cabinetul Smile Perfect'}</p>
+                            <p className="text-sm text-muted-foreground">{address}</p>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <span>{phone}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>

@@ -6,15 +6,15 @@ import Calendar from "../Calendar"
 import GanttChart from "../GanttChart"
 import SpotlightSearch from "../SpotlightSearch"
 import KpiOverview from "./KpiOverview"
-import TreatmentsView from "./TreatmentsView"
-import PatientsView from "./PatientsView"
-import DoctorsView from "./DoctorsView"
+import ServicesView from "./ServicesView"
+import ClientsView from "./ClientsView"
+import StaffView from "./StaffView"
 import AutomatizariView from "./AutomatizariView"
 import SettingsView from "./SettingsView"
 import { Drawer, DrawerContent, DrawerField } from "../ui/drawer"
 import useAppStore from "../../store/appStore"
 import useWorkspaceConfig from "../../hooks/useWorkspaceConfig"
-import { getDemoDoctors, getDemoAppointments, getDemoClients } from "../../config/demoData"
+import { getDemoStaff, getDemoAppointments, getDemoClients } from "../../config/demoData"
 import { getDrawerInputs } from "../../config/drawerInputs"
 import { clinicAppointmentsData } from "../../config/demoCalendarData"
 import { hotelReservationsData, fitnessWorkoutData } from "../../config/demoGanttData"
@@ -164,7 +164,7 @@ const initialHotelReservations = (() => {
 
 function WorkspaceView({ workspace }) {
   const { getLabel, workspaceType, config } = useWorkspaceConfig()
-  const initialDoctors = useMemo(() => getDemoDoctors(workspaceType), [workspaceType])
+  const initialDoctors = useMemo(() => getDemoStaff(workspaceType), [workspaceType])
   const initialAppointments = useMemo(() => getDemoAppointments(workspaceType, initialDoctors), [workspaceType, initialDoctors])
 
   // Initialize Controller
@@ -314,7 +314,7 @@ function WorkspaceView({ workspace }) {
 
   // Reset formData when drawer opens in create mode, or populate with initial data
   useEffect(() => {
-    if (drawerMode === "create" && isDrawerOpen && drawerViewId === "programari") {
+    if (drawerMode === "create" && isDrawerOpen && drawerViewId === "appointments") {
       if (drawerData && Object.keys(drawerData).length > 0) {
         controller.setFormData(drawerData)
       } else {
@@ -391,42 +391,42 @@ function WorkspaceView({ workspace }) {
     },
   ], [getLabel, setActiveMenu])
 
-  const topBarActions = useMemo(() => {
+  const getActionBarActions = useMemo(() => {
     switch (activeMenu) {
-      case "programari":
+      case "appointments":
         return [
           {
             id: "add-appointment",
             label: "Adaugă programare",
             variant: "default",
-            onClick: () => openDrawer("programari", null, "create"),
+            onClick: () => openDrawer("appointments", null, "create"),
           },
         ]
-      case "pacienti":
+      case "clients":
         return [
           {
-            id: "add-patient",
-            label: getLabel("addPatient"),
+            id: "add-client",
+            label: getLabel("addClient"),
             variant: "default",
-            onClick: () => openDrawer("pacienti", null, "create"),
+            onClick: () => openDrawer("clients", null, "create"),
           },
         ]
-      case "medici":
+      case "staff":
         return [
           {
-            id: "add-doctor",
-            label: getLabel("addDoctor"),
+            id: "add-staff",
+            label: getLabel("addStaff"),
             variant: "default",
-            onClick: () => openDrawer("medici", null, "create"),
+            onClick: () => openDrawer("staff", null, "create"),
           },
         ]
-      case "tratamente":
+      case "services":
         return [
           {
-            id: "add-treatment",
-            label: getLabel("addTreatment"),
+            id: "add-service",
+            label: getLabel("addService"),
             variant: "default",
-            onClick: () => openDrawer("tratamente", null, "create"),
+            onClick: () => openDrawer("services", null, "create"),
           },
         ]
       case "automatizari":
@@ -447,17 +447,17 @@ function WorkspaceView({ workspace }) {
     switch (activeMenu) {
       case "kpi":
         return <KpiOverview />
-      case "tratamente":
-        return <TreatmentsView />
-      case "pacienti":
-        return <PatientsView />
-      case "medici":
-        return <DoctorsView doctors={doctors} />
+      case "services":
+        return <ServicesView />
+      case "clients":
+        return <ClientsView />
+      case "staff":
+        return <StaffView doctors={doctors} />
       case "automatizari":
         return <AutomatizariView />
       case "setari":
         return <SettingsView />
-      case "programari":
+      case "appointments":
       default:
         // Folosește GanttChart pentru workspace-uri de tip hotel
         if (config.id === "hotel" || workspaceType === "hotel") {
@@ -484,7 +484,7 @@ function WorkspaceView({ workspace }) {
               currentDate={selectedDate}
               onEventClick={handleAppointmentDoubleClick}
               onEventCreate={(date, hour) => {
-                openDrawer("programare", null, "create")
+                openDrawer("appointment", null, "create")
               }}
             />
           </div>
@@ -509,7 +509,7 @@ function WorkspaceView({ workspace }) {
           <div className="sticky top-0 z-10">
             <TopBar
               onlineUsers={onlineUsers}
-              actions={topBarActions}
+              actions={getActionBarActions}
             />
           </div>
           <div className="flex flex-1 min-h-0 flex-col">
@@ -528,7 +528,7 @@ function WorkspaceView({ workspace }) {
         onSelect={handleSpotlightSelect}
       />
       {(() => {
-        const drawerFields = getDrawerInputs("programari", workspaceType)
+        const drawerFields = getDrawerInputs("appointments", workspaceType)
         const isCreateMode = drawerMode === "create"
         const displayData = isCreateMode ? formData : drawerData
 
@@ -562,7 +562,7 @@ function WorkspaceView({ workspace }) {
 
         return (
           <Drawer
-            open={isDrawerOpen && drawerViewId === "programari"}
+            open={isDrawerOpen && drawerViewId === "appointments"}
             onOpenChange={closeDrawer}
             title={isCreateMode ? `Adaugă programare` : `Detalii programare`}
             tabs={
@@ -599,14 +599,11 @@ function WorkspaceView({ workspace }) {
                                     ? drawerData.clientName || "Programare nouă"
                                     : drawerData.patient || "Programare nouă"}
                                 </h3>
-                                {workspaceType === "fitness" ? (
-                                  drawerData.training && (
-                                    <p className="text-sm text-muted-foreground">{drawerData.training}</p>
-                                  )
-                                ) : (
-                                  drawerData.treatment && (
-                                    <p className="text-sm text-muted-foreground">{drawerData.treatment}</p>
-                                  )
+                                {workspaceType === "fitness" && drawerData.training && (
+                                  <p className="text-sm text-muted-foreground">{drawerData.training}</p>
+                                )}
+                                {workspaceType !== "fitness" && drawerData.treatment && (
+                                  <p className="text-sm text-muted-foreground">{drawerData.treatment}</p>
                                 )}
                               </div>
                             </div>
@@ -637,31 +634,28 @@ function WorkspaceView({ workspace }) {
                     ),
                   },
                 ]
-                : undefined
+            : undefined
             }
             defaultTab="details"
             actions={drawerActions}
           >
             {isCreateMode && (
               <DrawerContent>
-                <>
-                  {drawerFields.map((field) => {
-                    const value = field.accessor(displayData || {})
+                {drawerFields.map((field) => {
+                  const value = field.accessor(displayData || {})
+                  const isEditable = true
 
-                    return (
-                      <DrawerField
-                        key={field.id}
-                        label={field.label}
-                        type={field.type}
-                        editable={true}
-                        value={value}
-                        onChange={(newValue) => handleAppointmentFieldChange(field.id, newValue)}
-                      >
-                        {field.render ? field.render(value) : null}
-                      </DrawerField>
-                    )
-                  })}
-                </>
+                  return (
+                    <DrawerField
+                      key={field.id}
+                      label={field.label}
+                      type={field.type}
+                      editable={isEditable}
+                      value={value}
+                      onChange={(newValue) => handleAppointmentFieldChange(field.id, newValue)}
+                    />
+                  )
+                })}
               </DrawerContent>
             )}
           </Drawer>

@@ -38,10 +38,10 @@ export const commonTableColumns = {
 }
 
 // Get table columns for a specific menu and workspace type
-export const getTableColumns = (menuId, workspaceType = "clinic") => {
+export const getTableColumns = (entityType, workspaceType = "clinic") => {
   // Tabele comune (automatizări)
-  if (commonTableColumns[menuId]) {
-    return commonTableColumns[menuId]
+  if (commonTableColumns[entityType]) {
+    return commonTableColumns[entityType]
   }
 
   // Normalizează tipul de workspace pentru a gestiona și "sala-fitness"
@@ -49,14 +49,24 @@ export const getTableColumns = (menuId, workspaceType = "clinic") => {
     : workspaceType === "fitness" || workspaceType === "sala-fitness" ? "fitness" 
     : "clinic"
 
+  // Map entity types to old menu IDs for backward compatibility
+  const entityTypeToMenuId = {
+    'clients': 'pacienti',
+    'staff': 'medici',
+    'services': 'tratamente',
+    'appointments': 'programari'
+  }
+
+  const menuId = entityTypeToMenuId[entityType] || entityType
+
   // Tabele specifice tipului de workspace
   const config = workspaceTableConfigs[normalizedType] || workspaceTableConfigs.clinic
   return config[menuId] || []
 }
 
 // Get filter columns for a specific menu
-export const getFilterColumns = (menuId, workspaceType = "clinic") => {
-  const columns = getTableColumns(menuId, workspaceType)
+export const getFilterColumns = (entityType, workspaceType = "clinic") => {
+  const columns = getTableColumns(entityType, workspaceType)
   return columns?.map((col) => ({
     id: col.id,
     label: col.label,

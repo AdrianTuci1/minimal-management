@@ -2,7 +2,7 @@ import { getLabel } from "./workspaceConfig"
 
 // Centralized drawer field definitions
 export const drawerInputs = {
-  pacienti: (workspaceType = "clinic") => [
+  clients: (workspaceType = "clinic") => [
     {
       id: "name",
       label: "Nume",
@@ -51,7 +51,7 @@ export const drawerInputs = {
       editable: true,
     },
   ],
-  medici: (workspaceType = "clinic") => [
+  staff: (workspaceType = "clinic") => [
     {
       id: "name",
       label: "Nume complet",
@@ -102,7 +102,7 @@ export const drawerInputs = {
       editable: true,
     },
   ],
-  tratamente: (workspaceType = "clinic") => [
+  services: (workspaceType = "clinic") => [
     {
       id: "code",
       label: "Cod",
@@ -146,7 +146,7 @@ export const drawerInputs = {
       editable: true,
     },
   ],
-  programari: (workspaceType = "clinic") => {
+  appointments: (workspaceType = "clinic") => {
     const type = workspaceType === "fitness" ? "fitness" : workspaceType === "hotel" ? "hotel" : "clinic"
     
     if (type === "hotel") {
@@ -281,17 +281,28 @@ export const drawerInputs = {
   },
 }
 
-// Get drawer inputs for a specific view
-export const getDrawerInputs = (viewId, workspaceType = "clinic") => {
-  const inputDef = drawerInputs[viewId]
+// Legacy mappings for backward compatibility
+const legacyMappings = {
+  pacienti: 'clients',
+  medici: 'staff',
+  tratamente: 'services',
+  programari: 'appointments'
+}
+
+// Get drawer inputs for a specific entity type
+export const getDrawerInputs = (entityType, workspaceType = "clinic") => {
+  // Map legacy entity types to new generic ones
+  const mappedEntityType = legacyMappings[entityType] || entityType
+  
+  const inputDef = drawerInputs[mappedEntityType]
   if (!inputDef) return []
   
-  // Dacă este o funcție, o apelăm cu workspaceType
+  // If it's a function, call it with workspaceType
   if (typeof inputDef === "function") {
     return inputDef(workspaceType)
   }
   
-  // Altfel returnează direct
+  // Otherwise return directly
   return inputDef
 }
 
