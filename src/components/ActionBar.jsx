@@ -20,6 +20,7 @@ import { addDays, startOfWeek } from "date-fns"
 import useAppStore from "@/store/appStore"
 import useWorkspaceConfig from "@/hooks/useWorkspaceConfig"
 import { getFilterColumns } from "@/config/tableColumns"
+import { useActionBarModel } from "@/models/ActionBarModel"
 
 const ActionBar = ({ actions = [] }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
@@ -39,9 +40,16 @@ const ActionBar = ({ actions = [] }) => {
     navigateCalendar,
   } = useAppStore()
   const { workspaceType, config } = useWorkspaceConfig()
+  
+  // Folosește modelul pentru a obține informații despre ActionBar
+  const { 
+    hasActionBar, 
+    hasCalendarControls, 
+    calendarType 
+  } = useActionBarModel()
 
-  const isHotelReservations = activeMenu === "programari" && (config?.id === "hotel" || workspaceType === "hotel")
-  const isClinicCalendar = activeMenu === "programari" && (config?.id === "clinic" || workspaceType === "clinic" || workspaceType === "clinica-dentara")
+  const isHotelReservations = calendarType === "hotel"
+  const isClinicCalendar = calendarType === "clinic"
 
   const formattedDate = useMemo(() => {
     if (isClinicCalendar) {
@@ -172,9 +180,14 @@ const ActionBar = ({ actions = [] }) => {
     month: "30-31"
   }
 
+  // Dacă view-ul nu are ActionBar, returnează null
+  if (!hasActionBar) {
+    return null
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-2 px-4 py-2">
-      {activeMenu === "programari" ? (
+      {hasCalendarControls ? (
         isHotelReservations ? (
           <>
             <div className="flex items-center rounded-xl border border-border/80 bg-muted/40">
@@ -208,6 +221,29 @@ const ActionBar = ({ actions = [] }) => {
               <CalendarCheck className="h-4 w-4" />
               <span className="sr-only">Săptămâna curentă</span>
             </Button>
+            
+            {/* Buton pentru a schimba vizualizarea rezervărilor (săptămână/lună) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-10 rounded-xl px-3 gap-2" type="button">
+                  <span className="font-semibold">Săptămână</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40">
+                <DropdownMenuLabel>Vizualizare rezervări</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value="week" onValueChange={() => {}}>
+                  <DropdownMenuRadioItem value="week">
+                    <CalendarDays className="h-4 w-4 mr-2" />
+                    Săptămână
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="month">
+                    <CalendarRange className="h-4 w-4 mr-2" />
+                    Lună
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         ) : isClinicCalendar ? (
           <>
@@ -272,6 +308,28 @@ const ActionBar = ({ actions = [] }) => {
                     Lună
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Buton pentru filtrare programări */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-10 rounded-xl px-3" type="button">
+                  <span className="font-semibold">Filtru</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40">
+                <DropdownMenuLabel>Filtrează programări</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem>
+                  Doar programările mele
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem>
+                  Doar de astăzi
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem>
+                  Doar confirmate
+                </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </>

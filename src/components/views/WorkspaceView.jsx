@@ -1,25 +1,24 @@
-import { useEffect, useMemo, useSyncExternalStore } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import Sidebar from "../Sidebar"
 import TopBar from "../TopBar"
-import Calendar from "../Calendar"
-import GanttChart from "../GanttChart"
 import SpotlightSearch from "../SpotlightSearch"
 import KpiOverview from "./KpiOverview"
 import ServicesView from "./ServicesView"
-import ClientsView from "./ClientsView"
+import PatientsView from "./PatientsView"
 import StaffView from "./StaffView"
+import CalendarView from "./CalendarView"
+import TreatmentsView from "./TreatmentsView"
 import AutomatizariView from "./AutomatizariView"
 import SettingsView from "./SettingsView"
 import { Drawer, DrawerContent, DrawerField } from "../ui/drawer"
 import useAppStore from "../../store/appStore"
 import useWorkspaceConfig from "../../hooks/useWorkspaceConfig"
-import { getDemoStaff, getDemoAppointments, getDemoClients } from "../../config/demoData"
+import { getDemoStaff } from "../../config/demoData"
 import { getDrawerInputs } from "../../config/drawerInputs"
-import { clinicAppointmentsData } from "../../config/demoCalendarData"
-import { hotelReservationsData, fitnessWorkoutData } from "../../config/demoGanttData"
 import { Calendar as CalendarIcon, Save, Trash2 } from "lucide-react"
-import { WorkspaceController } from "../../models/WorkspaceController"
+import { useActionBarModel } from "../../models/ActionBarModel"
+import ReservationModel from "../../models/ReservationModel"
 
 const initialOnlineUsers = [
   {
@@ -42,154 +41,13 @@ const initialOnlineUsers = [
   },
 ]
 
-// Funcție helper pentru a obține luni săptămâna curentă
-const getMondayOfCurrentWeek = () => {
-  const today = new Date()
-  const day = today.getDay()
-  const diff = today.getDate() - day + (day === 0 ? -6 : 1) // Ajustare pentru luni
-  const monday = new Date(today)
-  monday.setDate(diff)
-  monday.setHours(0, 0, 0, 0)
-  return monday
-}
-
-// Funcție helper pentru a formata data ca string YYYY-MM-DD
-const formatDateString = (date) => {
-  return date.toISOString().split('T')[0]
-}
-
-// Funcție helper pentru a adăuga zile la o dată
-const addDays = (date, days) => {
-  const result = new Date(date)
-  result.setDate(result.getDate() + days)
-  return result
-}
-
-const initialHotelReservations = (() => {
-  const monday = getMondayOfCurrentWeek()
-
-  return [
-    {
-      id: "res-1",
-      roomId: "room-101",
-      guest: "Ion Popescu",
-      service: "Cazare Single",
-      startDate: formatDateString(addDays(monday, 0)), // Luni
-      durationDays: 2,
-      status: "confirmată",
-    },
-    {
-      id: "res-2",
-      roomId: "room-102",
-      guest: "Maria Ionescu",
-      service: "Cazare Double",
-      startDate: formatDateString(addDays(monday, 1)), // Marți
-      durationDays: 3,
-      status: "în curs",
-    },
-    {
-      id: "res-3",
-      roomId: "room-103",
-      guest: "Andrei Georgescu",
-      service: "Cazare Single",
-      startDate: formatDateString(addDays(monday, 2)), // Miercuri
-      durationDays: 1,
-      status: "confirmată",
-    },
-    {
-      id: "res-4",
-      roomId: "room-104",
-      guest: "Elena Stan",
-      service: "Cazare Double",
-      startDate: formatDateString(addDays(monday, 3)), // Joi
-      durationDays: 2,
-      status: "nouă",
-    },
-    {
-      id: "res-5",
-      roomId: "room-201",
-      guest: "Dan Pop",
-      service: "Suite Premium",
-      startDate: formatDateString(addDays(monday, 4)), // Vineri
-      durationDays: 4,
-      status: "confirmată",
-    },
-    {
-      id: "res-6",
-      roomId: "room-202",
-      guest: "Ana Dima",
-      service: "Cazare Double",
-      startDate: formatDateString(addDays(monday, 6)), // Duminică
-      durationDays: 2,
-      status: "confirmată",
-    },
-    {
-      id: "res-7",
-      roomId: "room-203",
-      guest: "Radu Georgescu",
-      service: "Cazare Single",
-      startDate: formatDateString(addDays(monday, 7)), // Luni săptămâna următoare
-      durationDays: 3,
-      status: "în curs",
-    },
-    {
-      id: "res-8",
-      roomId: "room-301",
-      guest: "Carmen Iacob",
-      service: "Suite Deluxe",
-      startDate: formatDateString(addDays(monday, 9)), // Miercuri săptămâna următoare
-      durationDays: 3,
-      status: "ocupată",
-    },
-    {
-      id: "res-9",
-      roomId: "room-101",
-      guest: "Stefan Popescu",
-      service: "Cazare Single",
-      startDate: formatDateString(addDays(monday, 5)), // Sâmbătă
-      durationDays: 2,
-      status: "confirmată",
-    },
-    {
-      id: "res-10",
-      roomId: "room-102",
-      guest: "Laura Pop",
-      service: "Cazare Double",
-      startDate: formatDateString(addDays(monday, 11)), // Vineri săptămâna următoare
-      durationDays: 2,
-      status: "nouă",
-    },
-  ]
-})()
-
 function WorkspaceView({ workspace }) {
   const { getLabel, workspaceType, config } = useWorkspaceConfig()
   const initialDoctors = useMemo(() => getDemoStaff(workspaceType), [workspaceType])
-  const initialAppointments = useMemo(() => getDemoAppointments(workspaceType, initialDoctors), [workspaceType, initialDoctors])
-
-  // Initialize Controller
-  const controller = useMemo(() => {
-    return new WorkspaceController(workspaceType, {
-      appointments: initialAppointments,
-      reservations: initialHotelReservations
-    })
-  }, [workspaceType, initialAppointments])
-
-  // Sync state from controller
-  const appointments = useSyncExternalStore(
-    (callback) => controller.subscribe(callback),
-    () => controller.appointments
-  )
-
-  const reservations = useSyncExternalStore(
-    (callback) => controller.subscribe(callback),
-    () => controller.reservations
-  )
-
-  const formData = useSyncExternalStore(
-    (callback) => controller.subscribe(callback),
-    () => controller.formData
-  )
+  
+  // Stare pentru modelul de rezervări
+  const [reservationModel, setReservationModel] = useState(null)
+  const [formData, setFormData] = useState({})
 
   const {
     activeMenu,
@@ -201,8 +59,6 @@ function WorkspaceView({ workspace }) {
     setIsSpotlightOpen,
     isSidebarCollapsed,
     toggleSidebarCollapsed,
-    setAppointments: setStoreAppointments,
-    updateAppointment,
     openDrawer,
     isDrawerOpen,
     drawerData,
@@ -214,10 +70,21 @@ function WorkspaceView({ workspace }) {
   const doctors = useMemo(() => initialDoctors, [initialDoctors])
   const onlineUsers = useMemo(() => initialOnlineUsers, [])
 
-  // Sync appointments to store
+  // Folosește modelul pentru a obține acțiunile pentru ActionBar
+  const { actions } = useActionBarModel()
+  
+  // Inițializează modelul de rezervări
   useEffect(() => {
-    setStoreAppointments(appointments)
-  }, [appointments, setStoreAppointments])
+    const model = new ReservationModel(workspaceType)
+    setReservationModel(model)
+    
+    // Abonează-te la schimbări
+    const unsubscribe = model.subscribe(() => {
+      // Modelul notifică automat componentele despre schimbări
+    })
+    
+    return unsubscribe
+  }, [workspaceType])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -254,74 +121,61 @@ function WorkspaceView({ workspace }) {
 
   const handleAppointmentFieldChange = (fieldId, value) => {
     const isCreateMode = drawerMode === "create"
-    controller.handleFieldChange(fieldId, value, isCreateMode, drawerData?.id)
-
-    // If editing, also update the drawer data in the store immediately for UI responsiveness
-    if (!isCreateMode && drawerData) {
-      // We need to know if we are updating an appointment or a reservation
-      // The controller has already updated its internal state
-      // We just need to reflect that in the drawer
-      if (workspaceType === "hotel") {
-        const updated = controller.reservations.find(r => r.id === drawerData.id)
-        if (updated) openDrawer("programari", updated, "edit")
-      } else {
-        const updated = controller.appointments.find(a => a.id === drawerData.id)
+    
+    if (isCreateMode) {
+      setFormData((prev) => ({
+        ...prev,
+        [fieldId]: value,
+      }))
+    } else if (drawerData && reservationModel) {
+      // Actualizează rezervarea prin model
+      const updated = reservationModel.updateReservation(drawerData.id, {
+        [fieldId]: value,
+      })
+      
         if (updated) {
           openDrawer("programari", updated, "edit")
-          updateAppointment(drawerData.id, { [fieldId]: value }) // Keep store in sync
-        }
       }
-    }
-  }
-
-  const handleDeleteReservation = () => {
-    if (!drawerData || !drawerData.id) return
-
-    if (window.confirm("Sigur doriți să ștergeți această rezervare?")) {
-      controller.deleteReservation(drawerData.id)
-      closeDrawer()
     }
   }
 
   const handleSaveAppointment = () => {
+    if (!reservationModel) return
+    
     const isCreateMode = drawerMode === "create"
+    const dataToSave = isCreateMode ? formData : drawerData
 
     if (isCreateMode) {
-      if (workspaceType === "hotel") {
-        controller.createReservation(formData)
-      } else {
-        const newAppt = controller.createAppointment(formData)
-        // Also update store
-        setStoreAppointments([...appointments, newAppt])
-      }
+      // Obține tipul de calendar din useActionBarModel
+      const { calendarType } = useActionBarModel()
+      reservationModel.addReservation(calendarType, dataToSave)
       closeDrawer()
-      controller.resetFormData()
+      setFormData({})
     } else {
+      reservationModel.updateReservation(drawerData.id, dataToSave)
       closeDrawer()
     }
   }
 
   const handleDeleteAppointment = () => {
-    if (!drawerData || !drawerData.id) return
+    if (!drawerData || !drawerData.id || !reservationModel) return
 
     if (window.confirm("Sigur doriți să ștergeți această programare?")) {
-      controller.deleteAppointment(drawerData.id)
-      // Update store
-      setStoreAppointments(appointments.filter(a => a.id !== drawerData.id))
+      reservationModel.deleteReservation(drawerData.id)
       closeDrawer()
     }
   }
 
-  // Reset formData when drawer opens in create mode, or populate with initial data
+  // Reset formData when drawer opens in create mode
   useEffect(() => {
     if (drawerMode === "create" && isDrawerOpen && drawerViewId === "appointments") {
       if (drawerData && Object.keys(drawerData).length > 0) {
-        controller.setFormData(drawerData)
+        setFormData(drawerData)
       } else {
-        controller.resetFormData()
+        setFormData({})
       }
     }
-  }, [drawerMode, isDrawerOpen, drawerViewId, drawerData, controller])
+  }, [drawerMode, isDrawerOpen, drawerViewId, drawerData])
 
   const handleOpenSpotlight = () => {
     setIsSpotlightOpen(true)
@@ -337,6 +191,13 @@ function WorkspaceView({ workspace }) {
   }
 
   const spotlightItems = useMemo(() => [
+    {
+      id: "goto-home",
+      title: "Deschide Home",
+      description: "Vezi indicatorii și activitățile recente",
+      group: "Navigare",
+      onSelect: () => setActiveMenu("home"),
+    },
     {
       id: "goto-programari",
       title: `Deschide ${getLabel("appointments")}`,
@@ -391,104 +252,27 @@ function WorkspaceView({ workspace }) {
     },
   ], [getLabel, setActiveMenu])
 
-  const getActionBarActions = useMemo(() => {
-    switch (activeMenu) {
-      case "appointments":
-        return [
-          {
-            id: "add-appointment",
-            label: "Adaugă programare",
-            variant: "default",
-            onClick: () => openDrawer("appointments", null, "create"),
-          },
-        ]
-      case "clients":
-        return [
-          {
-            id: "add-client",
-            label: getLabel("addClient"),
-            variant: "default",
-            onClick: () => openDrawer("clients", null, "create"),
-          },
-        ]
-      case "staff":
-        return [
-          {
-            id: "add-staff",
-            label: getLabel("addStaff"),
-            variant: "default",
-            onClick: () => openDrawer("staff", null, "create"),
-          },
-        ]
-      case "services":
-        return [
-          {
-            id: "add-service",
-            label: getLabel("addService"),
-            variant: "default",
-            onClick: () => openDrawer("services", null, "create"),
-          },
-        ]
-      case "automatizari":
-        return [
-          {
-            id: "add-automation",
-            label: "Adaugă automatizare",
-            variant: "default",
-            onClick: () => openDrawer("automatizari", null, "create"),
-          },
-        ]
-      default:
-        return []
-    }
-  }, [activeMenu, openDrawer, getLabel])
-
   const renderMainContent = () => {
     switch (activeMenu) {
-      case "kpi":
+      case "home":
         return <KpiOverview />
+      case "tratamente":
+        return <TreatmentsView />
       case "services":
         return <ServicesView />
       case "clients":
-        return <ClientsView />
+      case "pacienti":
+        return <PatientsView />
       case "staff":
+      case "medici":
         return <StaffView doctors={doctors} />
       case "automatizari":
         return <AutomatizariView />
       case "setari":
         return <SettingsView />
-      case "appointments":
+      case "programari":
       default:
-        // Folosește GanttChart pentru workspace-uri de tip hotel
-        if (config.id === "hotel" || workspaceType === "hotel") {
-          return (
-            <div className="w-full h-full">
-              <GanttChart data={reservations} />
-            </div>
-          )
-        }
-        // Folosește GanttChart pentru workspace-uri de tip fitness
-        if (config.id === "fitness" || workspaceType === "fitness") {
-          return (
-            <div className="w-full h-full">
-              <GanttChart data={fitnessWorkoutData} />
-            </div>
-          )
-        }
-        // Folosește Calendar pentru clinici
-        return (
-          <div className="w-full h-full">
-            <Calendar
-              events={appointments}
-              currentView={calendarView}
-              currentDate={selectedDate}
-              onEventClick={handleAppointmentDoubleClick}
-              onEventCreate={(date, hour) => {
-                openDrawer("appointment", null, "create")
-              }}
-            />
-          </div>
-        )
+        return <CalendarView />
     }
   }
 
@@ -509,7 +293,7 @@ function WorkspaceView({ workspace }) {
           <div className="sticky top-0 z-10">
             <TopBar
               onlineUsers={onlineUsers}
-              actions={getActionBarActions}
+              actions={actions}
             />
           </div>
           <div className="flex flex-1 min-h-0 flex-col">
@@ -556,7 +340,7 @@ function WorkspaceView({ workspace }) {
             label: "Șterge",
             icon: Trash2,
             variant: "destructive",
-            onClick: workspaceType === "hotel" ? handleDeleteReservation : handleDeleteAppointment,
+            onClick: handleDeleteAppointment,
           })
         }
 

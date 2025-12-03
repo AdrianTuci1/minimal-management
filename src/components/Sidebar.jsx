@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import useWorkspaceStore from "../store/workspaceStore"
-import useWorkspaceConfig from "../hooks/useWorkspaceConfig"
+import { useSidebarModel } from "../models/SidebarModel"
 import { useMemo } from "react"
 
 // Map pentru iconurile din configurare către componentele Lucide React
@@ -51,15 +51,25 @@ const Sidebar = ({
 }) => {
   const navigate = useNavigate()
   const { goToGroupView } = useWorkspaceStore()
-  const { menuItems: configMenuItems } = useWorkspaceConfig()
+  
+  // Folosim modelul pentru a obține datele și funcționalitățile
+  const {
+    menuItems,
+    workspaceNavigationItems,
+    isMenuItemActive,
+    handleMenuChange,
+    handleOpenSpotlight,
+    handleSpotlightSelect,
+    handleToggleCollapse,
+  } = useSidebarModel()
 
-  // Transformă meniurile din configurare în formatul așteptat de componentă
-  const menuItems = useMemo(() => {
-    return configMenuItems.map((item) => ({
+  // Transformă meniurile din model în formatul așteptat de componentă
+  const transformedMenuItems = useMemo(() => {
+    return menuItems.map((item) => ({
       ...item,
       icon: iconMap[item.icon] || Settings, // Fallback la Settings dacă iconul nu există
     }))
-  }, [configMenuItems])
+  }, [menuItems])
 
   return (
     <aside
@@ -93,21 +103,18 @@ const Sidebar = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-48">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        goToGroupView()
-                        navigate("/")
-                      }}
-                    >
-                      <LayoutDashboard className="h-4 w-4" />
-                      <span>Meniu general</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigate(`/workspace/${workspace.id}/public`)}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      <span>Pagina client</span>
-                    </DropdownMenuItem>
+                    {workspaceNavigationItems.map((item) => {
+                      const Icon = iconMap[item.icon] || Settings
+                      return (
+                        <DropdownMenuItem
+                          key={item.id}
+                          onClick={item.onClick}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </DropdownMenuItem>
+                      )
+                    })}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
@@ -124,7 +131,7 @@ const Sidebar = ({
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={onToggleCollapse}
+            onClick={handleToggleCollapse}
           >
             <PanelsTopLeft className="h-4 w-4" />
             <span className="sr-only">Comuta latimea meniului</span>
@@ -139,7 +146,7 @@ const Sidebar = ({
                 <Button
                   variant="outline"
                   className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
-                  onClick={onOpenSpotlight}
+                  onClick={handleOpenSpotlight}
                 >
                   <span className="flex items-center gap-2">
                     <span>Căutare rapidă</span>
@@ -155,9 +162,9 @@ const Sidebar = ({
               </div>
 
               <nav className="space-y-0 px-2">
-                {menuItems.map((item) => {
+                {transformedMenuItems.map((item) => {
                   const Icon = item.icon
-                  const isActive = activeMenu === item.id
+                  const isActive = isMenuItemActive(item.id)
 
                   return (
                     <Button
@@ -170,7 +177,7 @@ const Sidebar = ({
                           : "hover:bg-muted/50",
                         isCollapsed && "px-2 py-3 justify-center",
                       )}
-                      onClick={() => onMenuChange?.(item.id)}
+                      onClick={() => handleMenuChange(item.id)}
                     >
                       <span
                         className={cn(

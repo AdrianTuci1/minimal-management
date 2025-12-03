@@ -12,6 +12,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import ActionBar from "@/components/ActionBar"
 import useAppStore from "@/store/appStore"
+import useWorkspaceConfig from "@/hooks/useWorkspaceConfig"
+import { useActionBarModel } from "@/models/ActionBarModel"
 import ShareSpotlight from "@/components/ShareSpotlight"
 
 const menuLabels = {
@@ -23,17 +25,17 @@ const menuLabels = {
   setari: "Setari",
 }
 
-const TopBar = ({ onlineUsers = [], actions = [] }) => {
+const TopBar = ({ onlineUsers = [] }) => {
   const [isMobileControlsOpen, setIsMobileControlsOpen] = useState(false)
   const primarySectionRef = useRef(null)
 
   const { activeMenu, isSyncActive, toggleSyncActive, isPresenting, togglePresenting, isShareSpotlightOpen, setIsShareSpotlightOpen } = useAppStore()
+  const { workspaceType, config } = useWorkspaceConfig()
+  
+  // Folosește modelul pentru a obține informații despre ActionBar
+  const { hasActionBar, actions } = useActionBarModel()
 
   const visibleUsers = useMemo(() => onlineUsers.slice(0, 4), [onlineUsers])
-
-  // View-uri care au nevoie de ActionBar
-  const viewsWithActionBar = ["programari", "pacienti", "medici", "tratamente"]
-  const shouldShowActionBar = viewsWithActionBar.includes(activeMenu)
 
   useEffect(() => {
     setIsMobileControlsOpen(false)
@@ -116,7 +118,7 @@ const TopBar = ({ onlineUsers = [], actions = [] }) => {
           </div>
         </div>
         <Separator className="bg-border/60" />
-        {shouldShowActionBar && <ActionBar actions={actions} />}
+        {hasActionBar && <ActionBar actions={actions} />}
       </header>
       <ShareSpotlight />
     </div>
