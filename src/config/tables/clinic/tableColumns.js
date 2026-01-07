@@ -130,5 +130,37 @@ export const clinicTableColumns = {
       accessor: (row) => row.status,
     },
   ],
+  leads: [
+    {
+      id: "name",
+      label: "Nume",
+      accessor: (row) => row.name,
+    },
+    {
+      id: "contact",
+      label: "Contact",
+      accessor: (row) => row.email,
+    },
+    {
+      id: "phone",
+      label: "Telefon",
+      accessor: (row) => row.phone,
+    },
+    {
+      id: "status",
+      label: "Status",
+      accessor: (row) => row.status,
+    },
+    {
+      id: "source",
+      label: "Sursă",
+      accessor: (row) => row.source,
+    },
+    {
+      id: "date",
+      label: "Data",
+      accessor: (row) => row.date,
+    },
+  ],
 }
 

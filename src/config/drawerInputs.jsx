@@ -51,6 +51,50 @@ export const drawerInputs = {
       editable: true,
     },
   ],
+  leads: (workspaceType = "clinic") => [
+    {
+      id: "name",
+      label: "Nume complet",
+      type: "text",
+      accessor: (row) => row?.name || "",
+      editable: true,
+    },
+    {
+      id: "email",
+      label: "Email",
+      type: "email",
+      accessor: (row) => row?.email || "",
+      editable: true,
+    },
+    {
+      id: "phone",
+      label: "Telefon",
+      type: "tel",
+      accessor: (row) => row?.phone || "",
+      editable: true,
+    },
+    {
+      id: "status",
+      label: "Status",
+      type: "text",
+      accessor: (row) => row?.status || "",
+      editable: true,
+    },
+    {
+      id: "source",
+      label: "Sursă",
+      type: "text",
+      accessor: (row) => row?.source || "",
+      editable: true,
+    },
+    {
+      id: "notes",
+      label: "Notițe",
+      type: "text",
+      accessor: (row) => row?.notes || "",
+      editable: true,
+    },
+  ],
   staff: (workspaceType = "clinic") => [
     {
       id: "name",
@@ -148,7 +192,7 @@ export const drawerInputs = {
   ],
   appointments: (workspaceType = "clinic") => {
     const type = workspaceType === "fitness" ? "fitness" : workspaceType === "hotel" ? "hotel" : "clinic"
-    
+
     if (type === "hotel") {
       return [
         {
@@ -188,7 +232,7 @@ export const drawerInputs = {
         },
       ]
     }
-    
+
     if (type === "fitness") {
       return [
         {
@@ -234,7 +278,7 @@ export const drawerInputs = {
         },
       ]
     }
-    
+
     // Clinic (default)
     return [
       {
@@ -293,15 +337,15 @@ const legacyMappings = {
 export const getDrawerInputs = (entityType, workspaceType = "clinic") => {
   // Map legacy entity types to new generic ones
   const mappedEntityType = legacyMappings[entityType] || entityType
-  
+
   const inputDef = drawerInputs[mappedEntityType]
   if (!inputDef) return []
-  
+
   // If it's a function, call it with workspaceType
   if (typeof inputDef === "function") {
     return inputDef(workspaceType)
   }
-  
+
   // Otherwise return directly
   return inputDef
 }

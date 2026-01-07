@@ -78,6 +78,11 @@ export class SidebarModel {
           icon: "Activity",
         },
         {
+          id: "leads",
+          label: "Lead-uri",
+          icon: "UserPlus",
+        },
+        {
           id: "automatizari",
           label: "Automatizări",
           icon: "Wand2",

@@ -20,13 +20,15 @@ export const workspaceTypes = {
       staff: "Medici",
       services: "Tratamente",
       appointments: "Programări",
-      
+      leads: "Lead-uri",
+
       // Etichete pentru acțiuni
       addClient: "Adaugă pacient",
       addStaff: "Adaugă medic",
       addService: "Adaugă tratament",
       addAppointment: "Adaugă programare",
-      
+      addLead: "Adaugă lead",
+
       // Etichete pentru câmpuri
       specialty: "Specializare",
       cabinet: "Cabinet",
@@ -34,6 +36,7 @@ export const workspaceTypes = {
       staff: "Medic",
       service: "Tratament",
       appointment: "Programare",
+      lead: "Lead",
       recommendedStaff: "Medic recomandat",
       clientsToday: "Pacienți azi",
       activeServices: "Tratamente active",
@@ -53,7 +56,7 @@ export const workspaceTypes = {
       appointments: "Whiteboard", // Componenta default pentru programări
     },
   },
-  
+
   fitness: {
     id: "fitness",
     name: "Sala de sport",
@@ -63,13 +66,13 @@ export const workspaceTypes = {
       staff: "Antrenori",
       services: "Pachete",
       appointments: "Programări",
-      
+
       // Etichete pentru acțiuni
       addClient: "Adaugă client",
       addStaff: "Adaugă antrenor",
       addService: "Adaugă pachet",
       addAppointment: "Adaugă programare",
-      
+
       // Etichete pentru câmpuri
       specialty: "Specializare",
       cabinet: "Zonă",
@@ -95,7 +98,7 @@ export const workspaceTypes = {
       appointments: "Whiteboard",
     },
   },
-  
+
   hotel: {
     id: "hotel",
     name: "Hotel",
@@ -105,13 +108,13 @@ export const workspaceTypes = {
       staff: "Personal",
       services: "Servicii",
       appointments: "Rezervări",
-      
+
       // Etichete pentru acțiuni
       addClient: "Adaugă client",
       addStaff: "Adaugă personal",
       addService: "Adaugă serviciu",
       addAppointment: "Adaugă rezervare",
-      
+
       // Etichete pentru câmpuri
       specialty: "Departament",
       cabinet: "Sector",

@@ -199,11 +199,12 @@ export class ReservationModel {
     switch (this.workspaceType) {
       case "clinic":
       case "clinica-dentara":
-        this.reservations = clinicAppointmentsData.map(item => 
-          new ClinicAppointment({
+        this.reservations = clinicAppointmentsData.map(item => {
+          const startDate = item.date ? new Date(item.date) : new Date(item.startTime)
+          return new ClinicAppointment({
             id: item.id,
-            title: `${item.patient} - ${item.treatment}`,
-            date: new Date(item.date),
+            title: `${item.patient || item.title} - ${item.treatment || ''}`,
+            date: startDate,
             startTime: item.startTime,
             endTime: item.endTime,
             patient: item.patient,
@@ -213,36 +214,63 @@ export class ReservationModel {
             status: item.status,
             color: item.color,
           })
-        )
+        })
         break
       case "hotel":
-        this.reservations = hotelReservationsData.map(item => 
+        // Fix for object structure { items: [...] }
+        const hotelItems = hotelReservationsData.items || []
+        // Hotel items are rooms with children (reservations)
+        const hotelReservations = []
+        hotelItems.forEach(room => {
+          if (room.children) {
+            room.children.forEach(res => {
+              hotelReservations.push(res)
+            })
+          }
+        })
+
+        this.reservations = hotelReservations.map(item =>
           new HotelReservation({
             id: item.id,
-            title: `${item.guest} - ${item.service}`,
-            guest: item.guest,
-            roomId: item.roomId,
-            service: item.service,
-            durationDays: item.durationDays,
-            checkIn: new Date(item.startDate),
+            title: item.name,
+            guest: item.name,
+            roomId: item.parentId, // Assuming we can link back or logic needs adjustment
+            service: "Cazare", // Placeholder
+            durationDays: item.timeline?.duration || 1, // Logic needs to extract duration
+            checkIn: item.timeline?.startDate ? new Date(item.timeline.startDate) : new Date(),
             status: item.status,
+            color: item.color
           })
         )
         break
       case "fitness":
-        this.reservations = fitnessWorkoutData.map(item => 
+        // Fix for object structure { items: [...] }
+        const fitnessItems = fitnessWorkoutData.items || []
+        // Flatten structure if needed or map directly depending on demoGanttData
+        // fitnessWorkoutData items seem to be trainers with children (sessions)
+        const fitnessSessions = []
+        fitnessItems.forEach(trainer => {
+          if (trainer.children) {
+            trainer.children.forEach(session => {
+              fitnessSessions.push({
+                ...session,
+                trainerName: trainer.name
+              })
+            })
+          }
+        })
+
+        this.reservations = fitnessSessions.map(item =>
           new FitnessReservation({
             id: item.id,
-            title: `${item.clientName} - ${item.training}`,
-            date: new Date(item.date),
-            startTime: item.startTime,
-            endTime: item.endTime,
-            clientName: item.clientName,
-            trainer: item.trainer,
-            training: item.training,
-            equipment: item.equipment,
-            duration: item.duration,
-            status: item.status,
+            title: item.name,
+            date: item.timeline?.startDate ? new Date(item.timeline.startDate) : new Date(),
+            startTime: "10:00", // Placeholder if missing
+            endTime: "11:00", // Placeholder
+            clientName: "Client", // Placeholder
+            trainer: item.trainerName,
+            training: item.name,
+            status: "confirmată",
             color: item.color,
           })
         )
@@ -250,21 +278,34 @@ export class ReservationModel {
       default:
         // Pentru alte tipuri de workspace, folosim datele demo standard
         const demoAppointments = getDemoAppointments(this.workspaceType)
-        this.reservations = demoAppointments.map(item => 
-          new ClinicAppointment({
+        this.reservations = demoAppointments.map(item => {
+          // Helper to convert minutes to HH:mm
+          const formatTime = (minutes) => {
+            const h = Math.floor(minutes / 60)
+            const m = minutes % 60
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+          }
+
+          // Construct dynamic date
+          const date = new Date() // Use today for default items if no date specified
+          // item.start is in minutes
+          const startTime = item.start ? formatTime(item.start) : "09:00"
+          const endTime = item.start && item.duration ? formatTime(item.start + item.duration) : "10:00"
+
+          return new ClinicAppointment({
             id: item.id,
             title: `${item.patient} - ${item.treatment}`,
-            date: new Date(item.date),
-            startTime: item.startTime,
-            endTime: item.endTime,
+            date: date,
+            startTime: startTime,
+            endTime: endTime,
             patient: item.patient,
-            doctor: item.doctor,
+            doctor: item.doctor || item.doctorId,
             treatment: item.treatment,
-            room: item.room,
+            room: "Cabinet 1",
             status: item.status,
-            color: item.color,
+            color: "blue",
           })
-        )
+        })
     }
   }
 
@@ -325,10 +366,10 @@ export class ReservationModel {
   getReservationsByDate(date) {
     const targetDate = new Date(date)
     targetDate.setHours(0, 0, 0, 0)
-    
+
     const nextDate = new Date(targetDate)
     nextDate.setDate(nextDate.getDate() + 1)
-    
+
     return this.reservations.filter(r => {
       const reservationDate = new Date(r.date)
       return reservationDate >= targetDate && reservationDate < nextDate
@@ -338,7 +379,7 @@ export class ReservationModel {
   getReservationsByDateRange(startDate, endDate) {
     const start = new Date(startDate)
     const end = new Date(endDate)
-    
+
     return this.reservations.filter(r => {
       const reservationDate = new Date(r.date)
       return reservationDate >= start && reservationDate <= end

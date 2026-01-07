@@ -26,6 +26,8 @@ export class ActionBarModel {
         return this.getAutomationActions(openDrawer)
       case "setari":
         return this.getSettingsActions(openDrawer)
+      case "leads":
+        return this.getLeadActions(openDrawer)
       default:
         return []
     }
@@ -35,9 +37,9 @@ export class ActionBarModel {
   getAppointmentActions(openDrawer, workspaceType, config) {
     const isHotelReservations = config?.id === "hotel" || workspaceType === "hotel"
     const isClinicCalendar = config?.id === "clinic" || workspaceType === "clinic" || workspaceType === "clinica-dentara"
-    
+
     const actions = []
-    
+
     if (isHotelReservations) {
       actions.push({
         id: "add-reservation",
@@ -60,7 +62,7 @@ export class ActionBarModel {
         onClick: () => openDrawer("appointments", null, "create"),
       })
     }
-    
+
     return actions
   }
 
@@ -124,9 +126,21 @@ export class ActionBarModel {
     ]
   }
 
+  // Acțiuni pentru leads
+  getLeadActions(openDrawer) {
+    return [
+      {
+        id: "add-lead",
+        label: "Adaugă lead",
+        variant: "default",
+        onClick: () => openDrawer("leads", null, "create"),
+      },
+    ]
+  }
+
   // Verifică dacă view-ul are nevoie de ActionBar
   hasActionBar(activeMenu) {
-    const viewsWithActionBar = ["programari", "pacienti", "medici", "tratamente", "services", "staff"]
+    const viewsWithActionBar = ["programari", "pacienti", "medici", "tratamente", "services", "staff", "leads"]
     return viewsWithActionBar.includes(activeMenu)
   }
 
@@ -138,15 +152,15 @@ export class ActionBarModel {
   // Obține tipul de calendar pentru view-ul curent
   getCalendarType(activeMenu, workspaceType, config) {
     if (activeMenu !== "programari") return null
-    
+
     if (config?.id === "hotel" || workspaceType === "hotel") {
       return "hotel"
     }
-    
+
     if (config?.id === "clinic" || workspaceType === "clinic" || workspaceType === "clinica-dentara") {
       return "clinic"
     }
-    
+
     return "default"
   }
 }
@@ -155,9 +169,9 @@ export class ActionBarModel {
 export const useActionBarModel = () => {
   const { activeMenu, openDrawer } = useAppStore()
   const { workspaceType, config, getLabel } = useWorkspaceConfig()
-  
+
   const model = new ActionBarModel()
-  
+
   return {
     actions: model.getActions(activeMenu, workspaceType, config, openDrawer, getLabel),
     hasActionBar: model.hasActionBar(activeMenu),

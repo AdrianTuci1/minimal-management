@@ -6,10 +6,28 @@ const normalizeWorkspaceType = (workspaceType) => {
   return "clinic"
 }
 
+// Helper pentru date dinamice
+const now = new Date()
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+const getRelativeDateStr = (daysOffset) => {
+  const date = new Date(today)
+  date.setDate(date.getDate() + daysOffset)
+  return date.toISOString().split('T')[0]
+}
+
+const getRelativeDateTimeStr = (daysOffset, hour, minute) => {
+  const date = new Date(today)
+  date.setDate(date.getDate() + daysOffset)
+  const dayStr = date.getDate().toString()
+  const monthStr = date.toLocaleString('ro-RO', { month: 'short' })
+  return `${dayStr} ${monthStr}, ${hour}:${minute}`
+}
+
 // Date demo pentru clienți/pacienți
 export const getDemoClients = (workspaceType) => {
   const type = normalizeWorkspaceType(workspaceType)
-  
+
   if (type === "hotel") {
     return [
       {
@@ -17,39 +35,39 @@ export const getDemoClients = (workspaceType) => {
         email: "ion.popescu@email.com",
         phone: "0723 887 210",
         dePlata: "450 RON",
-        upcoming: "Cazare Single - 12 feb, 14:00",
+        upcoming: `Cazare Single - ${getRelativeDateTimeStr(1, '14', '00')}`,
       },
       {
         name: "Maria Ionescu",
         email: "maria.ionescu@email.com",
         phone: "0721 535 298",
         dePlata: "280 RON",
-        upcoming: "Cazare Double - 12 feb, 15:00",
+        upcoming: `Cazare Double - ${getRelativeDateTimeStr(1, '15', '00')}`,
       },
       {
         name: "Andrei Georgescu",
         email: "andrei.georgescu@email.com",
         phone: "0730 611 927",
         dePlata: "1200 RON",
-        upcoming: "Suite Premium - 12 feb, 16:00",
+        upcoming: `Suite Premium - ${getRelativeDateTimeStr(1, '16', '00')}`,
       },
       {
         name: "Elena Stan",
         email: "elena.stan@email.com",
         phone: "0745 632 110",
         dePlata: "350 RON",
-        upcoming: "Masaj relaxare - 12 feb, 18:00",
+        upcoming: `Masaj relaxare - ${getRelativeDateTimeStr(1, '18', '00')}`,
       },
       {
         name: "Dan Pop",
         email: "dan.pop@email.com",
         phone: "0733 440 118",
         dePlata: "0 RON",
-        upcoming: "Breakfast buffet - 13 feb, 08:00",
+        upcoming: `Breakfast buffet - ${getRelativeDateTimeStr(2, '08', '00')}`,
       },
     ]
   }
-  
+
   if (type === "fitness") {
     return [
       {
@@ -57,39 +75,39 @@ export const getDemoClients = (workspaceType) => {
         email: "ion.popescu@email.com",
         phone: "0723 887 210",
         dePlata: "450 RON",
-        upcoming: "Abonament Standard - 12 feb, 09:00",
+        upcoming: `Abonament Standard - ${getRelativeDateTimeStr(1, '09', '00')}`,
       },
       {
         name: "Maria Ionescu",
         email: "maria.ionescu@email.com",
         phone: "0721 535 298",
         dePlata: "280 RON",
-        upcoming: "Abonament Premium - 12 feb, 10:00",
+        upcoming: `Abonament Premium - ${getRelativeDateTimeStr(1, '10', '00')}`,
       },
       {
         name: "Andrei Georgescu",
         email: "andrei.georgescu@email.com",
         phone: "0730 611 927",
         dePlata: "1200 RON",
-        upcoming: "Pachet Antrenament Personal - 12 feb, 11:00",
+        upcoming: `Pachet Antrenament Personal - ${getRelativeDateTimeStr(1, '11', '00')}`,
       },
       {
         name: "Elena Stan",
         email: "elena.stan@email.com",
         phone: "0745 632 110",
         dePlata: "350 RON",
-        upcoming: "Consult nutriție - 12 feb, 16:00",
+        upcoming: `Consult nutriție - ${getRelativeDateTimeStr(1, '16', '00')}`,
       },
       {
         name: "Dan Pop",
         email: "dan.pop@email.com",
         phone: "0733 440 118",
         dePlata: "0 RON",
-        upcoming: "Pachet grup - 13 feb, 08:00",
+        upcoming: `Pachet grup - ${getRelativeDateTimeStr(2, '08', '00')}`,
       },
     ]
   }
-  
+
   // Clinic (default)
   return [
     {
@@ -97,35 +115,35 @@ export const getDemoClients = (workspaceType) => {
       email: "ioana.marinescu@email.com",
       phone: "0723 887 210",
       dePlata: "450 RON",
-      upcoming: "Control aparat dentar - 12 feb, 09:00",
+      upcoming: `Control aparat dentar - ${getRelativeDateTimeStr(1, '09', '00')}`,
     },
     {
       name: "Adrian Pavel",
       email: "adrian.pavel@email.com",
       phone: "0721 535 298",
       dePlata: "280 RON",
-      upcoming: "Strângere arcuri - 12 feb, 10:45",
+      upcoming: `Strângere arcuri - ${getRelativeDateTimeStr(1, '10', '45')}`,
     },
     {
       name: "Maria Tudor",
       email: "maria.tudor@email.com",
       phone: "0730 611 927",
       dePlata: "1200 RON",
-      upcoming: "Implant finalizare - 12 feb, 09:15",
+      upcoming: `Implant finalizare - ${getRelativeDateTimeStr(1, '09', '15')}`,
     },
     {
       name: "Sorina Pătrașcu",
       email: "sorina.patrascu@email.com",
       phone: "0745 632 110",
       dePlata: "350 RON",
-      upcoming: "Albire profesională - 12 feb, 08:45",
+      upcoming: `Albire profesională - ${getRelativeDateTimeStr(1, '08', '45')}`,
     },
     {
       name: "Carmen Iacob",
       email: "carmen.iacob@email.com",
       phone: "0733 440 118",
       dePlata: "0 RON",
-      upcoming: "Chirurgie parodontală - 12 feb, 11:00",
+      upcoming: `Chirurgie parodontală - ${getRelativeDateTimeStr(1, '11', '00')}`,
     },
   ]
 }
@@ -133,7 +151,7 @@ export const getDemoClients = (workspaceType) => {
 // Date demo pentru personal/medici/antrenori
 export const getDemoStaff = (workspaceType) => {
   const type = normalizeWorkspaceType(workspaceType)
-  
+
   if (type === "hotel") {
     return [
       {
@@ -182,7 +200,7 @@ export const getDemoStaff = (workspaceType) => {
       },
     ]
   }
-  
+
   if (type === "fitness") {
     return [
       {
@@ -231,7 +249,7 @@ export const getDemoStaff = (workspaceType) => {
       },
     ]
   }
-  
+
   // Clinic (default)
   return [
     {
@@ -255,6 +273,7 @@ export const getDemoStaff = (workspaceType) => {
       activeTreatments: 4,
       nextSlot: "15:30",
       cabinet: "Cabinet 2",
+      avatar: "https://i.pravatar.cc/150?img=8",
     },
     {
       id: "dr-stan",
@@ -284,7 +303,7 @@ export const getDemoStaff = (workspaceType) => {
 // Date demo pentru servicii/tratamente/pachete
 export const getDemoServices = (workspaceType) => {
   const type = normalizeWorkspaceType(workspaceType)
-  
+
   if (type === "hotel") {
     return [
       {
@@ -329,7 +348,7 @@ export const getDemoServices = (workspaceType) => {
       },
     ]
   }
-  
+
   if (type === "fitness") {
     return [
       {
@@ -374,7 +393,7 @@ export const getDemoServices = (workspaceType) => {
       },
     ]
   }
-  
+
   // Clinic (default)
   return [
     {
@@ -425,7 +444,7 @@ export const getDemoAppointments = (workspaceType) => {
   const type = normalizeWorkspaceType(workspaceType)
   const staff = getDemoStaff(workspaceType)
   const clients = getDemoClients(workspaceType)
-  
+
   // Pentru hotel, programările sunt gestionate diferit
   if (type === "hotel") {
     return [
@@ -435,7 +454,7 @@ export const getDemoAppointments = (workspaceType) => {
         clientName: clients[0]?.name || "Ion Popescu",
         roomId: "Camera 101",
         service: "Cazare Single",
-        startDate: "2024-02-12",
+        startDate: getRelativeDateStr(2),
         durationDays: 3,
         status: "confirmată",
       },
@@ -445,7 +464,7 @@ export const getDemoAppointments = (workspaceType) => {
         clientName: clients[1]?.name || "Maria Ionescu",
         roomId: "Camera 205",
         service: "Cazare Double",
-        startDate: "2024-02-12",
+        startDate: getRelativeDateStr(2),
         durationDays: 2,
         status: "confirmată",
       },
@@ -455,13 +474,13 @@ export const getDemoAppointments = (workspaceType) => {
         clientName: clients[2]?.name || "Andrei Georgescu",
         roomId: "Suite 301",
         service: "Suite Premium",
-        startDate: "2024-02-12",
+        startDate: getRelativeDateStr(2),
         durationDays: 5,
         status: "confirmată",
       },
     ]
   }
-  
+
   // Pentru fitness, returnăm programări cu clienți și ore
   if (type === "fitness") {
     return [
@@ -511,7 +530,7 @@ export const getDemoAppointments = (workspaceType) => {
       },
     ]
   }
-  
+
   // Clinic (default)
   return [
     {
@@ -564,5 +583,61 @@ export const getDemoTreatments = (workspaceType) => {
 
 export const getDemoPatients = (workspaceType) => {
   return getDemoClients(workspaceType)
+}
+
+// Date demo pentru lead-uri
+export const getDemoLeads = (workspaceType) => {
+  return [
+    {
+      id: "lead-1",
+      name: "Alexandru Popa",
+      email: "alex.popa@gmail.com",
+      phone: "0722 112 233",
+      status: "nou",
+      source: "website",
+      notes: "Interesat de implant dentar",
+      date: getRelativeDateStr(0),
+    },
+    {
+      id: "lead-2",
+      name: "Mihaela Radu",
+      email: "mihaela.radu@yahoo.com",
+      phone: "0744 556 677",
+      status: "contactat",
+      source: "facebook",
+      notes: "Vrea informații despre fațete",
+      date: getRelativeDateStr(-1),
+    },
+    {
+      id: "lead-3",
+      name: "Cristian Dumitrescu",
+      email: "cristi.d@gmail.com",
+      phone: "0755 889 900",
+      status: "programat",
+      source: "recomandare",
+      notes: "Programat consult inițial",
+      date: getRelativeDateStr(-2),
+    },
+    {
+      id: "lead-4",
+      name: "Elena Voinea",
+      email: "elena.voinea@outlook.com",
+      phone: "0766 332 211",
+      status: "calificat",
+      source: "instagram",
+      notes: "Urgent, durere măsea",
+      date: getRelativeDateStr(0),
+    },
+    {
+      id: "lead-5",
+      name: "George Stan",
+      email: "george.stan@gmail.com",
+      phone: "0722 998 877",
+      status: "neinteresat",
+      source: "google",
+      notes: "Preț prea mare",
+      date: getRelativeDateStr(-4),
+    },
+  ]
 }
 

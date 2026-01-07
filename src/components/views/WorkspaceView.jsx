@@ -11,12 +11,13 @@ import CalendarView from "./CalendarView"
 import TreatmentsView from "./TreatmentsView"
 import AutomatizariView from "./AutomatizariView"
 import SettingsView from "./SettingsView"
+import LeadsView from "./LeadsView"
 import { Drawer, DrawerContent, DrawerField } from "../ui/drawer"
 import useAppStore from "../../store/appStore"
 import useWorkspaceConfig from "../../hooks/useWorkspaceConfig"
 import { getDemoStaff } from "../../config/demoData"
 import { getDrawerInputs } from "../../config/drawerInputs"
-import { Calendar as CalendarIcon, Save, Trash2 } from "lucide-react"
+import { Calendar as CalendarIcon, Save, Trash2, UserPlus } from "lucide-react"
 import { useActionBarModel } from "../../models/ActionBarModel"
 import ReservationModel from "../../models/ReservationModel"
 
@@ -240,6 +241,13 @@ function WorkspaceView({ workspace }) {
       group: "Navigare",
       onSelect: () => setActiveMenu("setari"),
     },
+    ...(workspaceType === "clinic" ? [{
+      id: "goto-leads",
+      title: "Deschide Lead-uri",
+      description: "Gestionează lead-uri noi",
+      group: "Navigare",
+      onSelect: () => setActiveMenu("leads"),
+    }] : []),
     {
       id: "toggle-today",
       title: "Sari la ziua curentă",
@@ -250,7 +258,7 @@ function WorkspaceView({ workspace }) {
         jumpToToday()
       },
     },
-  ], [getLabel, setActiveMenu])
+  ], [getLabel, setActiveMenu, workspaceType])
 
   const renderMainContent = () => {
     switch (activeMenu) {
@@ -270,6 +278,8 @@ function WorkspaceView({ workspace }) {
         return <AutomatizariView />
       case "setari":
         return <SettingsView />
+      case "leads":
+        return <LeadsView />
       case "programari":
       default:
         return <CalendarView />

@@ -29,9 +29,9 @@ export const EntityDrawer = ({
             {data && (
               <div className="mb-6 flex items-center gap-4 pb-6 border-b border-border">
                 <Avatar className="h-16 w-16">
-                  <AvatarFallback className="text-lg" style={{ 
-                    backgroundColor: data.color ? `${data.color}1a` : undefined, 
-                    color: data.color || undefined 
+                  <AvatarFallback className="text-lg" style={{
+                    backgroundColor: data.color ? `${data.color}1a` : undefined,
+                    color: data.color || undefined
                   }}>
                     {data.name
                       ?.split(" ")
@@ -108,30 +108,30 @@ export const EntityDrawer = ({
   // Default actions for all entity types
   const defaultActions = isCreateMode
     ? [
-        {
-          id: "save",
-          label: "Salvează",
-          icon: Save,
-          variant: "default",
-          onClick: onSave,
-        },
-      ]
+      {
+        id: "save",
+        label: "Salvează",
+        icon: Save,
+        variant: "default",
+        onClick: onSave,
+      },
+    ]
     : [
-        {
-          id: "save",
-          label: "Salvează",
-          icon: Save,
-          variant: "default",
-          onClick: onSave,
-        },
-        {
-          id: "delete",
-          label: "Șterge",
-          icon: Trash2,
-          variant: "destructive",
-          onClick: onDelete,
-        },
-      ]
+      {
+        id: "save",
+        label: "Salvează",
+        icon: Save,
+        variant: "default",
+        onClick: onSave,
+      },
+      {
+        id: "delete",
+        label: "Șterge",
+        icon: Trash2,
+        variant: "destructive",
+        onClick: onDelete,
+      },
+    ]
 
   // Merge with custom actions
   const drawerActions = [...defaultActions, ...actions]

@@ -21,26 +21,105 @@ const WeekView = ({ currentDate, events, onEventClick, onEventCreate }) => {
   }, []);
 
   const getEventsForDay = (day) => {
-    return events.filter((event) => {
+    const dayEvents = events.filter((event) => {
       const eventStart = parseISO(event.startTime);
       return isSameDay(eventStart, day);
+    });
+
+    return calculateEventLayout(dayEvents);
+  };
+
+  /**
+   * Calculates layout for events to handle overlaps with indented stacking.
+   * Shorter events appear on top (higher z-index).
+   */
+  const calculateEventLayout = (events) => {
+    // 1. Sort events by start time, then duration (longer first for placement)
+    const sortedEvents = [...events].sort((a, b) => {
+      const startA = parseISO(a.startTime).getTime();
+      const startB = parseISO(b.startTime).getTime();
+      if (startA !== startB) return startA - startB;
+
+      const endA = parseISO(a.endTime).getTime();
+      const endB = parseISO(b.endTime).getTime();
+      // Sort longer events first for stable background placement
+      return (endB - startB) - (endA - startA);
+    });
+
+    // 2. Assign overlapping groups and indentation
+    const columns = [];
+
+    sortedEvents.forEach(event => {
+      const start = parseISO(event.startTime);
+      const end = parseISO(event.endTime);
+      const startMs = start.getTime();
+      const endMs = end.getTime();
+
+      let placed = false;
+      // Try to place in the first available column (waterfall/indent effect)
+      for (let i = 0; i < columns.length; i++) {
+        const col = columns[i];
+        const hasOverlap = col.some(e => {
+          const eStart = parseISO(e.startTime).getTime();
+          const eEnd = parseISO(e.endTime).getTime();
+          return (startMs < eEnd && endMs > eStart);
+        });
+
+        if (!hasOverlap) {
+          col.push(event);
+          // Store the column index as indentation level
+          event._layout = { indentLevel: i };
+          placed = true;
+          break;
+        }
+      }
+
+      if (!placed) {
+        // Create new column/indent level
+        columns.push([event]);
+        event._layout = { indentLevel: columns.length - 1 };
+      }
+    });
+
+    const totalIndents = columns.length;
+
+    // 3. Finalize visualization props
+    return sortedEvents.map(event => {
+      return {
+        ...event,
+        _layout: {
+          ...event._layout,
+          totalIndents
+        }
+      };
     });
   };
 
   const calculateEventPosition = (event) => {
     const start = parseISO(event.startTime);
     const end = parseISO(event.endTime);
-    
+
     const hourHeight = 240; // Matches --hour-height
     const pixelsPerMinute = hourHeight / 60; // 4 pixels per minute
-    
+
     const startMinutes = start.getHours() * 60 + start.getMinutes();
     const endMinutes = end.getHours() * 60 + end.getMinutes();
     const duration = endMinutes - startMinutes;
-    
+
+    const layout = event._layout || { indentLevel: 0, totalIndents: 1 };
+
+    // Indent logic:
+    // Indent 10% for each level to the right
+    const indentPercent = 10;
+    const left = layout.indentLevel * indentPercent;
+    const width = 100 - left; // Occupy remaining space
+
     return {
       top: startMinutes * pixelsPerMinute,
-      height: Math.max(duration * pixelsPerMinute, 60) // Minimum 60px (15 min)
+      height: Math.max(duration * pixelsPerMinute, 60), // Minimum 60px (15 min)
+      width: `${width}%`,
+      left: `${left}%`,
+      zIndex: layout.indentLevel + 1 // Simple z-index based on indent order
     };
   };
 
@@ -107,7 +186,12 @@ const WeekView = ({ currentDate, events, onEventClick, onEventCreate }) => {
                       view="week"
                       style={{
                         top: `${position.top}px`,
-                        height: `${position.height}px`
+                        height: `${position.height}px`,
+                        width: position.width,
+                        left: position.left,
+                        zIndex: position.zIndex,
+                        position: 'absolute',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -119,7 +203,7 @@ const WeekView = ({ currentDate, events, onEventClick, onEventCreate }) => {
               </div>
             ))}
           </div>
-          
+
           {weekDays.map((day, index) => (
             isToday(day) && <TodayMarker key={`marker-${index}`} columnIndex={index + 2} />
           ))}
@@ -130,4 +214,3 @@ const WeekView = ({ currentDate, events, onEventClick, onEventCreate }) => {
 };
 
 export default WeekView;
-

@@ -13,7 +13,8 @@ import {
     MoreHorizontal,
     LayoutDashboard,
     ExternalLink,
-    Check
+    Check,
+    UserPlus
 } from "lucide-react"
 import {
     DropdownMenu,
@@ -42,6 +43,7 @@ const iconMap = {
     Zap,
     LayoutDashboard,
     ExternalLink,
+    UserPlus,
 }
 
 const Dock = ({ className }) => {
