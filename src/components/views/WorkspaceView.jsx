@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 
-import Sidebar from "../Sidebar"
+import Dock from "../Dock"
 import TopBar from "../TopBar"
 import SpotlightSearch from "../SpotlightSearch"
 import KpiOverview from "./KpiOverview"
@@ -44,7 +44,7 @@ const initialOnlineUsers = [
 function WorkspaceView({ workspace }) {
   const { getLabel, workspaceType, config } = useWorkspaceConfig()
   const initialDoctors = useMemo(() => getDemoStaff(workspaceType), [workspaceType])
-  
+
   // Stare pentru modelul de rezervări
   const [reservationModel, setReservationModel] = useState(null)
   const [formData, setFormData] = useState({})
@@ -72,17 +72,17 @@ function WorkspaceView({ workspace }) {
 
   // Folosește modelul pentru a obține acțiunile pentru ActionBar
   const { actions } = useActionBarModel()
-  
+
   // Inițializează modelul de rezervări
   useEffect(() => {
     const model = new ReservationModel(workspaceType)
     setReservationModel(model)
-    
+
     // Abonează-te la schimbări
     const unsubscribe = model.subscribe(() => {
       // Modelul notifică automat componentele despre schimbări
     })
-    
+
     return unsubscribe
   }, [workspaceType])
 
@@ -121,7 +121,7 @@ function WorkspaceView({ workspace }) {
 
   const handleAppointmentFieldChange = (fieldId, value) => {
     const isCreateMode = drawerMode === "create"
-    
+
     if (isCreateMode) {
       setFormData((prev) => ({
         ...prev,
@@ -132,16 +132,16 @@ function WorkspaceView({ workspace }) {
       const updated = reservationModel.updateReservation(drawerData.id, {
         [fieldId]: value,
       })
-      
-        if (updated) {
-          openDrawer("programari", updated, "edit")
+
+      if (updated) {
+        openDrawer("programari", updated, "edit")
       }
     }
   }
 
   const handleSaveAppointment = () => {
     if (!reservationModel) return
-    
+
     const isCreateMode = drawerMode === "create"
     const dataToSave = isCreateMode ? formData : drawerData
 
@@ -278,174 +278,178 @@ function WorkspaceView({ workspace }) {
 
   const contentOverflowClass = activeMenu === "programari" ? "overflow-hidden" : "overflow-auto"
 
+
+
   return (
-    <div className="bg-muted/40 min-h-screen">
-      <div className="flex min-h-screen bg-white text-foreground">
-        <Sidebar
-          activeMenu={activeMenu}
-          onMenuChange={handleMenuChange}
-          workspace={workspace}
-          onOpenSpotlight={handleOpenSpotlight}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={toggleSidebarCollapsed}
+    <div className="h-screen w-full flex flex-col overflow-hidden relative bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:8px_8px]">
+      {/* Top Header Layer - Transparent/Pointer-events-none to allow clicking through to bg if needed, though TopBar has pointer-events-auto */}
+      <div className="flex-none z-40">
+        <TopBar
+          onlineUsers={onlineUsers}
         />
-        <main className="relative flex flex-1 flex-col overflow-hidden">
-          <div className="sticky top-0 z-10">
-            <TopBar
-              onlineUsers={onlineUsers}
-              actions={actions}
-            />
-          </div>
-          <div className="flex flex-1 min-h-0 flex-col">
-            <div className="relative flex-1">
-              <div className={`absolute inset-0 ${contentOverflowClass}`}>
-                <div className={activeMenu === "programari" ? "flex h-full flex-col" : "min-h-full"}>{renderMainContent()}</div>
-              </div>
+      </div>
+
+      {/* Main Content Central Container */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 pt-1 pb-1 lg:px-6 lg:pb-2 overflow-hidden">
+
+
+
+        <div className="relative w-full max-w-[1920px] h-full bg-white rounded-3xl shadow-sm border border-border/60 overflow-hidden flex flex-col isolate">
+          <div className={`absolute inset-0 ${contentOverflowClass}`}>
+            <div className={activeMenu === "programari" ? "flex h-full flex-col" : "min-h-full"}>
+
+              {renderMainContent()}
             </div>
           </div>
-        </main>
-      </div>
+
+        </div>
+      </main>
+
+      {/* Apple-style Dock */}
+      <Dock />
       <SpotlightSearch
         open={isSpotlightOpen}
         items={spotlightItems}
         onClose={handleCloseSpotlight}
         onSelect={handleSpotlightSelect}
       />
-      {(() => {
-        const drawerFields = getDrawerInputs("appointments", workspaceType)
-        const isCreateMode = drawerMode === "create"
-        const displayData = isCreateMode ? formData : drawerData
+      {
+        (() => {
+          const drawerFields = getDrawerInputs("appointments", workspaceType)
+          const isCreateMode = drawerMode === "create"
+          const displayData = isCreateMode ? formData : drawerData
 
-        // Build actions array
-        const drawerActions = []
+          // Build actions array
+          const drawerActions = []
 
-        if (isCreateMode) {
-          drawerActions.push({
-            id: "save",
-            label: "Salvează",
-            icon: Save,
-            variant: "default",
-            onClick: handleSaveAppointment,
-          })
-        } else {
-          drawerActions.push({
-            id: "save",
-            label: "Salvează",
-            icon: Save,
-            variant: "default",
-            onClick: handleSaveAppointment,
-          })
-          drawerActions.push({
-            id: "delete",
-            label: "Șterge",
-            icon: Trash2,
-            variant: "destructive",
-            onClick: handleDeleteAppointment,
-          })
-        }
+          if (isCreateMode) {
+            drawerActions.push({
+              id: "save",
+              label: "Salvează",
+              icon: Save,
+              variant: "default",
+              onClick: handleSaveAppointment,
+            })
+          } else {
+            drawerActions.push({
+              id: "save",
+              label: "Salvează",
+              icon: Save,
+              variant: "default",
+              onClick: handleSaveAppointment,
+            })
+            drawerActions.push({
+              id: "delete",
+              label: "Șterge",
+              icon: Trash2,
+              variant: "destructive",
+              onClick: handleDeleteAppointment,
+            })
+          }
 
-        return (
-          <Drawer
-            open={isDrawerOpen && drawerViewId === "appointments"}
-            onOpenChange={closeDrawer}
-            title={isCreateMode ? `Adaugă programare` : `Detalii programare`}
-            tabs={
-              !isCreateMode
-                ? [
-                  {
-                    id: "details",
-                    icon: CalendarIcon,
-                    content: (
-                      <DrawerContent>
-                        <>
-                          {drawerData && (
-                            <div className="mb-6 flex items-center gap-4 pb-6 border-b border-border">
-                              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                <span className="text-lg font-bold text-primary">
-                                  {workspaceType === "fitness"
-                                    ? (drawerData.clientName || "N/A")
-                                      .split(" ")
-                                      .map((part) => part[0])
-                                      .join("")
-                                      .slice(0, 2)
-                                      .toUpperCase()
-                                    : (drawerData.patient || "N/A")
-                                      .split(" ")
-                                      .map((part) => part[0])
-                                      .join("")
-                                      .slice(0, 2)
-                                      .toUpperCase()}
-                                </span>
+          return (
+            <Drawer
+              open={isDrawerOpen && drawerViewId === "appointments"}
+              onOpenChange={closeDrawer}
+              title={isCreateMode ? `Adaugă programare` : `Detalii programare`}
+              tabs={
+                !isCreateMode
+                  ? [
+                    {
+                      id: "details",
+                      icon: CalendarIcon,
+                      content: (
+                        <DrawerContent>
+                          <>
+                            {drawerData && (
+                              <div className="mb-6 flex items-center gap-4 pb-6 border-b border-border">
+                                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <span className="text-lg font-bold text-primary">
+                                    {workspaceType === "fitness"
+                                      ? (drawerData.clientName || "N/A")
+                                        .split(" ")
+                                        .map((part) => part[0])
+                                        .join("")
+                                        .slice(0, 2)
+                                        .toUpperCase()
+                                      : (drawerData.patient || "N/A")
+                                        .split(" ")
+                                        .map((part) => part[0])
+                                        .join("")
+                                        .slice(0, 2)
+                                        .toUpperCase()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <h3 className="text-xl font-semibold text-foreground">
+                                    {workspaceType === "fitness"
+                                      ? drawerData.clientName || "Programare nouă"
+                                      : drawerData.patient || "Programare nouă"}
+                                  </h3>
+                                  {workspaceType === "fitness" && drawerData.training && (
+                                    <p className="text-sm text-muted-foreground">{drawerData.training}</p>
+                                  )}
+                                  {workspaceType !== "fitness" && drawerData.treatment && (
+                                    <p className="text-sm text-muted-foreground">{drawerData.treatment}</p>
+                                  )}
+                                </div>
                               </div>
-                              <div>
-                                <h3 className="text-xl font-semibold text-foreground">
-                                  {workspaceType === "fitness"
-                                    ? drawerData.clientName || "Programare nouă"
-                                    : drawerData.patient || "Programare nouă"}
-                                </h3>
-                                {workspaceType === "fitness" && drawerData.training && (
-                                  <p className="text-sm text-muted-foreground">{drawerData.training}</p>
-                                )}
-                                {workspaceType !== "fitness" && drawerData.treatment && (
-                                  <p className="text-sm text-muted-foreground">{drawerData.treatment}</p>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                          {drawerFields.map((field) => {
-                            const value = field.accessor(displayData || {})
-                            const isEditable = field.editable
+                            )}
+                            {drawerFields.map((field) => {
+                              const value = field.accessor(displayData || {})
+                              const isEditable = field.editable
 
-                            return (
-                              <DrawerField
-                                key={field.id}
-                                label={field.label}
-                                type={field.type}
-                                editable={isEditable}
-                                value={value}
-                                onChange={(newValue) => handleAppointmentFieldChange(field.id, newValue)}
-                              >
-                                {!isEditable && field.render ? (
-                                  field.render(value)
-                                ) : !isEditable ? (
-                                  <div className="text-base text-foreground">{value || "-"}</div>
-                                ) : null}
-                              </DrawerField>
-                            )
-                          })}
-                        </>
-                      </DrawerContent>
-                    ),
-                  },
-                ]
-            : undefined
-            }
-            defaultTab="details"
-            actions={drawerActions}
-          >
-            {isCreateMode && (
-              <DrawerContent>
-                {drawerFields.map((field) => {
-                  const value = field.accessor(displayData || {})
-                  const isEditable = true
+                              return (
+                                <DrawerField
+                                  key={field.id}
+                                  label={field.label}
+                                  type={field.type}
+                                  editable={isEditable}
+                                  value={value}
+                                  onChange={(newValue) => handleAppointmentFieldChange(field.id, newValue)}
+                                >
+                                  {!isEditable && field.render ? (
+                                    field.render(value)
+                                  ) : !isEditable ? (
+                                    <div className="text-base text-foreground">{value || "-"}</div>
+                                  ) : null}
+                                </DrawerField>
+                              )
+                            })}
+                          </>
+                        </DrawerContent>
+                      ),
+                    },
+                  ]
+                  : undefined
+              }
+              defaultTab="details"
+              actions={drawerActions}
+            >
+              {isCreateMode && (
+                <DrawerContent>
+                  {drawerFields.map((field) => {
+                    const value = field.accessor(displayData || {})
+                    const isEditable = true
 
-                  return (
-                    <DrawerField
-                      key={field.id}
-                      label={field.label}
-                      type={field.type}
-                      editable={isEditable}
-                      value={value}
-                      onChange={(newValue) => handleAppointmentFieldChange(field.id, newValue)}
-                    />
-                  )
-                })}
-              </DrawerContent>
-            )}
-          </Drawer>
-        )
-      })()}
-    </div>
+                    return (
+                      <DrawerField
+                        key={field.id}
+                        label={field.label}
+                        type={field.type}
+                        editable={isEditable}
+                        value={value}
+                        onChange={(newValue) => handleAppointmentFieldChange(field.id, newValue)}
+                      />
+                    )
+                  })}
+                </DrawerContent>
+              )}
+            </Drawer>
+          )
+        })()
+      }
+    </div >
   )
 }
 
