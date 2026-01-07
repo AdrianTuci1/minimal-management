@@ -1,5 +1,7 @@
 import useAppStore from "@/store/appStore"
+import useWorkspaceStore from "@/store/workspaceStore"
 import useWorkspaceConfig from "@/hooks/useWorkspaceConfig"
+import { useNavigate } from "react-router-dom"
 
 // Model pentru Sidebar care gestionează starea și interacțiunile
 export class SidebarModel {
@@ -11,7 +13,7 @@ export class SidebarModel {
   // Obține elementele meniului în funcție de configurație
   getMenuItems(workspaceType, config) {
     const menuItems = []
-    
+
     // Adaugă elementul "home" la început
     menuItems.push(
       {
@@ -20,7 +22,7 @@ export class SidebarModel {
         icon: "Home",
       }
     )
-    
+
     // Adaugă elemente comune pentru toate tipurile de workspace
     menuItems.push(
       {
@@ -39,7 +41,7 @@ export class SidebarModel {
         icon: "UserCog",
       }
     )
-    
+
     // Adaugă elemente specifice în funcție de tipul de workspace
     if (workspaceType === "hotel") {
       menuItems.push(
@@ -76,11 +78,6 @@ export class SidebarModel {
           icon: "Activity",
         },
         {
-          id: "servicii",
-          label: config?.labels?.services || "Servicii",
-          icon: "Activity",
-        },
-        {
           id: "automatizari",
           label: "Automatizări",
           icon: "Wand2",
@@ -92,20 +89,21 @@ export class SidebarModel {
         }
       )
     }
-    
+
     return menuItems
   }
 
   // Obține elementele de navigare pentru workspace-ul curent
-  getWorkspaceNavigationItems(workspace) {
+  getWorkspaceNavigationItems(workspace, navigate) {
     return [
       {
         id: "dashboard",
         label: "Panou de control",
         icon: "LayoutDashboard",
         onClick: () => {
-          const { goToGroupView } = useAppStore.getState()
+          const { goToGroupView } = useWorkspaceStore.getState()
           goToGroupView()
+          navigate("/")
         },
       },
       {
@@ -155,21 +153,22 @@ export class SidebarModel {
 
 // Hook pentru a folosi modelul în componente
 export const useSidebarModel = () => {
-  const { 
-    activeMenu, 
-    setActiveMenu, 
-    isSpotlightOpen, 
+  const {
+    activeMenu,
+    setActiveMenu,
+    isSpotlightOpen,
     setIsSpotlightOpen,
     isSidebarCollapsed,
     toggleSidebarCollapsed
   } = useAppStore()
-  const { workspace, workspaceType, config } = useWorkspaceConfig()
-  
+  const { currentWorkspace: workspace, workspaceType, config } = useWorkspaceConfig()
+  const navigate = useNavigate()
+
   const model = new SidebarModel()
-  
+
   return {
     menuItems: model.getMenuItems(workspaceType, config),
-    workspaceNavigationItems: model.getWorkspaceNavigationItems(workspace),
+    workspaceNavigationItems: model.getWorkspaceNavigationItems(workspace, navigate),
     isMenuItemActive: (itemId) => model.isMenuItemActive(itemId, activeMenu),
     handleMenuChange: (menuId) => model.handleMenuChange(menuId, setActiveMenu),
     handleOpenSpotlight: () => model.handleOpenSpotlight(setIsSpotlightOpen),

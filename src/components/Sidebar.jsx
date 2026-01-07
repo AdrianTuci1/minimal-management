@@ -39,6 +39,8 @@ const iconMap = {
   Users,
   Wand2,
   Zap,
+  LayoutDashboard,
+  ExternalLink,
 }
 
 const Sidebar = ({
@@ -51,7 +53,7 @@ const Sidebar = ({
 }) => {
   const navigate = useNavigate()
   const { goToGroupView } = useWorkspaceStore()
-  
+
   // Folosim modelul pentru a obține datele și funcționalitățile
   const {
     menuItems,
@@ -142,23 +144,23 @@ const Sidebar = ({
           <div className="flex h-full items-center justify-center">
             <div className="w-full space-y-5 py-2">
               <div className="flex items-center justify-center px-2">
-              {!isCollapsed ? (
-                <Button
-                  variant="outline"
-                  className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
-                  onClick={handleOpenSpotlight}
-                >
-                  <span className="flex items-center gap-2">
-                    <span>Căutare rapidă</span>
-                  </span>
-                  <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1 rounded-md border border-border/60 bg-white px-1.5 py-0.5 font-medium">
-                      ⌘K
+                {!isCollapsed ? (
+                  <Button
+                    variant="outline"
+                    className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-muted/60"
+                    onClick={handleOpenSpotlight}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>Căutare rapidă</span>
                     </span>
-                    <Search className="h-3.5 w-3.5" />
-                  </span>
-                </Button>
-              ) : null}
+                    <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1 rounded-md border border-border/60 bg-white px-1.5 py-0.5 font-medium">
+                        ⌘K
+                      </span>
+                      <Search className="h-3.5 w-3.5" />
+                    </span>
+                  </Button>
+                ) : null}
               </div>
 
               <nav className="space-y-0 px-2">
