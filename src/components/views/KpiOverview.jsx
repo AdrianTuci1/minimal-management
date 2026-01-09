@@ -1,33 +1,10 @@
-import { 
-  Calendar, 
-  Users, 
-  TrendingUp, 
-  Package, 
-  CreditCard, 
-  DollarSign,
-  Activity,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Star,
-  MessageSquare,
-  Percent,
-} from 'lucide-react'
 import { useMemo } from 'react'
-import {
-  Label,
-  PolarGrid,
-  PolarRadiusAxis,
-  RadialBar,
-  RadialBarChart,
-  ResponsiveContainer,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  Cell,
-} from "recharts"
-import { ChartContainer, ChartTooltipContent, ChartTooltip } from '../ui/chart'
+import KPIGrid from '../dashboards/KPIGrid'
+import ActivityOverview from '../dashboards/ActivityOverview'
+import AppointmentTrendsChart from '../dashboards/AppointmentTrendsChart'
+import WebsiteBookingsCard from '../dashboards/WebsiteBookingsCard'
+import WeeklyStatusChart from '../dashboards/WeeklyStatusChart'
+import ConversionFunnelCard from '../dashboards/ConversionFunnelCard'
 
 // Date demo pentru business statistics
 const demoBusinessStatistics = {
@@ -54,57 +31,54 @@ const demoBusinessStatistics = {
   },
   occupancyRate: 85,
   popularTreatments: [
-    { treatment: 'Detartraj', count: 45 },
-    { treatment: 'Obturație', count: 38 },
-    { treatment: 'Consultație', count: 67 },
-    { treatment: 'Tratament canal', count: 23 },
-    { treatment: 'Albire dentară', count: 15 }
+    { treatment: 'Scaling', count: 45 },
+    { treatment: 'Filling', count: 38 },
+    { treatment: 'Consultation', count: 67 },
+    { treatment: 'Root Canal', count: 23 },
+    { treatment: 'Whitening', count: 15 }
   ]
 }
 
-// Date demo pentru activități recente
-const demoRecentActivities = [
-  {
-    activityType: 'appointment',
-    action: 'Programare nouă',
-    patientName: 'Ion Popescu',
-    serviceName: 'Consultație',
-    medicName: 'Dr. Maria Ionescu',
-    time: '10:00',
-    status: 'confirmed',
-    createdAt: new Date(Date.now() - 15 * 60000).toISOString()
-  },
-  {
-    activityType: 'treatment',
-    action: 'Tratament finalizat',
-    patientName: 'Ana Georgescu',
-    treatmentName: 'Detartraj',
-    amount: 250,
-    status: 'completed',
-    createdAt: new Date(Date.now() - 30 * 60000).toISOString()
-  },
-  {
-    activityType: 'payment',
-    action: 'Plată înregistrată',
-    patientName: 'Mihai Popa',
-    amount: 500,
-    status: 'paid',
-    createdAt: new Date(Date.now() - 45 * 60000).toISOString()
-  },
-  {
-    activityType: 'appointment',
-    action: 'Programare anulată',
-    patientName: 'Elena Radu',
-    serviceName: 'Obturație',
-    status: 'cancelled',
-    createdAt: new Date(Date.now() - 60 * 60000).toISOString()
-  },
-  {
-    activityType: 'patient',
-    action: 'Pacient nou',
-    patientName: 'Alexandru Stan',
-    createdAt: new Date(Date.now() - 90 * 60000).toISOString()
+// Date demo pentru activități recente - GENERATED DENSE MOCK DATA
+const generateDenseActivityData = () => {
+  const activities = []
+  const actions = ['appointment', 'treatment', 'payment', 'patient']
+  const today = new Date()
+
+  // Generate for last 7 days
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today)
+    date.setDate(today.getDate() - i)
+
+    // Random number of activities per day (between 20 and 50)
+    const dailyCount = Math.floor(Math.random() * 30) + 20
+
+    for (let j = 0; j < dailyCount; j++) {
+      // Random hour between 8 and 20
+      const hour = Math.floor(Math.random() * (20 - 8 + 1)) + 8
+      const activityDate = new Date(date)
+      activityDate.setHours(hour, 0, 0, 0)
+
+      activities.push({
+        activityType: actions[Math.floor(Math.random() * actions.length)],
+        createdAt: activityDate.toISOString()
+      })
+    }
   }
+  return activities
+}
+
+const denseRecentActivities = generateDenseActivityData()
+
+// NEW: Demo data for Weekly Status (Mock)
+const demoWeeklyStatus = [
+  { day: 'Mon', completed: 18, cancelled: 2 },
+  { day: 'Tue', completed: 22, cancelled: 1 },
+  { day: 'Wed', completed: 19, cancelled: 3 },
+  { day: 'Thu', completed: 25, cancelled: 1 },
+  { day: 'Fri', completed: 20, cancelled: 4 },
+  { day: 'Sat', completed: 15, cancelled: 2 },
+  { day: 'Sun', completed: 8, cancelled: 0 },
 ]
 
 // Date demo pentru progresul medicilor
@@ -115,7 +89,104 @@ const demoDoctorProgress = [
   { doctor: 'Dr. Mihai Radu', appointments: 6, progress: 67, fill: 'var(--chart-4)' },
 ]
 
-const KpiOverview = () => {
+// Config Factory for Business Types
+const getBusinessConfig = (type) => {
+  const configs = {
+    clinic: {
+      kpiLabels: {
+        appointments: 'Scheduled',
+        completed: 'Completed',
+        cancelled: 'Cancelled',
+        patients: 'Patients',
+        revenue: 'Revenue',
+        occupancy: 'Occupancy'
+      },
+      doctorLabels: {
+        progressTitle: "Metrics Distribution",
+        progressLegend: "No data",
+        treatmentsTitle: "Popular Treatments",
+        treatmentsSubtitle: "Most requested treatments this month",
+        noTreatments: "No data on popular treatments"
+      },
+      websiteLabels: {
+        title: "Website Bookings",
+        visitorsLabel: "Bookings",
+        ratingLabel: "Rating",
+        smsLabel: "SMS"
+      },
+      activityLabels: {
+        title: "Activity Overview",
+        densityTitle: "Activity Density (Last 7 Days)",
+        funnelTitle: "Appointment Conversion",
+        viewAll: "View All Activities"
+      }
+    },
+    service: {
+      kpiLabels: {
+        appointments: 'Bookings',
+        completed: 'Fulfilled',
+        cancelled: 'Cancelled',
+        patients: 'Clients',
+        revenue: 'Revenue',
+        occupancy: 'Usage'
+      },
+      doctorLabels: {
+        progressTitle: "Performance Metrics",
+        progressLegend: "No data",
+        treatmentsTitle: "Popular Services",
+        treatmentsSubtitle: "Most requested services this month",
+        noTreatments: "No data on services"
+      },
+      websiteLabels: {
+        title: "Online Bookings",
+        visitorsLabel: "Requests",
+        ratingLabel: "Feedback",
+        smsLabel: "Notifications"
+      },
+      activityLabels: {
+        title: "Recent Actions",
+        densityTitle: "Action Density",
+        funnelTitle: "Booking Conversion",
+        viewAll: "View All Actions"
+      }
+    },
+    retail: {
+      kpiLabels: {
+        appointments: 'Orders',
+        completed: 'Delivered',
+        cancelled: 'Returns',
+        patients: 'Customers',
+        revenue: 'Sales',
+        occupancy: 'Inventory'
+      },
+      doctorLabels: {
+        progressTitle: "Sales Metrics",
+        progressLegend: "No data",
+        treatmentsTitle: "Top Products",
+        treatmentsSubtitle: "Best selling products this month",
+        noTreatments: "No data on products"
+      },
+      websiteLabels: {
+        title: "Online Orders",
+        visitorsLabel: "Orders",
+        ratingLabel: "Reviews",
+        smsLabel: "Alerts"
+      },
+      activityLabels: {
+        title: "Sales Activity",
+        densityTitle: "Sales Density",
+        funnelTitle: "Purchase Funnel",
+        viewAll: "View All Sales"
+      }
+    }
+  }
+
+  return configs[type] || configs.clinic
+}
+
+const KpiOverview = ({ businessType = 'clinic' }) => {
+  const config = getBusinessConfig(businessType)
+
   // Helper function to safely extract numeric value
   const extractNumber = (value) => {
     if (value === null || value === undefined) return 0
@@ -129,657 +200,84 @@ const KpiOverview = () => {
     return 0
   }
 
-  // Safe getters pentru datele din businessStatistics
-  const getTotalAppointments = () => {
-    return extractNumber(demoBusinessStatistics?.totalAppointments)
-  }
+  // Derived Data
+  const getWebsiteBookings = () => extractNumber(demoBusinessStatistics?.websiteBookings)
 
-  const getTotalPatients = () => {
-    return extractNumber(demoBusinessStatistics?.totalPatients)
-  }
+  const getClinicRating = () => ({
+    average: extractNumber(demoBusinessStatistics?.clinicRating?.average),
+    totalReviews: extractNumber(demoBusinessStatistics?.clinicRating?.totalReviews)
+  })
 
-  const getCompletedAppointments = () => {
-    return extractNumber(demoBusinessStatistics?.appointmentStats?.completed)
-  }
-
-  const getCancelledAppointments = () => {
-    return extractNumber(demoBusinessStatistics?.appointmentStats?.cancelled)
-  }
-
-  const getMonthlyRevenue = () => {
-    return extractNumber(demoBusinessStatistics?.revenue?.monthly)
-  }
-
-  const getWebsiteBookings = () => {
-    return extractNumber(demoBusinessStatistics?.websiteBookings)
-  }
-
-  const getClinicRating = () => {
-    return {
-      average: extractNumber(demoBusinessStatistics?.clinicRating?.average),
-      totalReviews: extractNumber(demoBusinessStatistics?.clinicRating?.totalReviews)
-    }
-  }
-
-  const getSmsStats = () => {
-    return {
-      sent: extractNumber(demoBusinessStatistics?.smsStats?.sent),
-      limit: extractNumber(demoBusinessStatistics?.smsStats?.limit),
-      percentage: extractNumber(demoBusinessStatistics?.smsStats?.percentage)
-    }
-  }
-
-  const getOccupancyRate = () => {
-    return extractNumber(demoBusinessStatistics?.occupancyRate)
-  }
+  const getSmsStats = () => ({
+    sent: extractNumber(demoBusinessStatistics?.smsStats?.sent),
+    limit: extractNumber(demoBusinessStatistics?.smsStats?.limit),
+    percentage: extractNumber(demoBusinessStatistics?.smsStats?.percentage)
+  })
 
   const getPopularTreatments = () => {
-    if (!Array.isArray(demoBusinessStatistics?.popularTreatments) || demoBusinessStatistics.popularTreatments.length === 0) {
-      return []
-    }
+    if (!Array.isArray(demoBusinessStatistics?.popularTreatments)) return []
     return demoBusinessStatistics.popularTreatments.map((item, index) => ({
-      treatment: typeof item.treatment === 'string' ? item.treatment : (item.treatment?.name || 'Tratament'),
-      count: extractNumber(item.count),
-      fill: `var(--chart-${(index % 5) + 1})`
+      treatment: typeof item.treatment === 'string' ? item.treatment : (item.treatment?.name || 'Item'),
+      count: extractNumber(item.count)
     }))
   }
 
-  // Chart data and config for website bookings
-  const websiteChartData = [
-    { browser: "chrome", visitors: getWebsiteBookings(), fill: "var(--chart-2)" },
+  // Data for Funnel - mapping for generic structure
+  // For 'clinic' it uses appointments. For others we might need to map differently props in real app.
+  // Using demo data as is for now.
+  const funnelData = [
+    { label: config.kpiLabels.appointments, value: extractNumber(demoBusinessStatistics?.totalAppointments), color: 'bg-blue-500' },
+    { label: 'Waitlist', value: extractNumber(demoBusinessStatistics?.totalAppointments) * 0.8, color: 'bg-indigo-500' },
+    { label: config.kpiLabels.completed, value: extractNumber(demoBusinessStatistics?.appointmentStats?.completed), color: 'bg-emerald-500' },
+    { label: config.websiteLabels.ratingLabel, value: extractNumber(demoBusinessStatistics?.clinicRating?.totalReviews), color: 'bg-amber-500' }
   ]
 
-  const websiteChartConfig = {
-    visitors: {
-      label: "Visitors",
-    },
-    safari: {
-      label: "Safari",
-      color: "var(--chart-2)",
-    },
-  }
-
-  // Chart data for doctor progress
-  const doctorProgressData = demoDoctorProgress
-
-  // Chart config pentru progresul medicilor - culori distincte pentru fiecare medic
-  const doctorProgressConfig = useMemo(() => {
-    const config = {
-      progress: {
-        label: "Progres",
-      },
-    }
-    // Adaugă culori distincte pentru fiecare medic
-    doctorProgressData.forEach((doctor, index) => {
-      config[`doctor_${index}`] = {
-        label: doctor.doctor,
-        color: `var(--chart-${(index % 5) + 1})`,
-      }
-    })
-    return config
-  }, [])
-
-  // Chart config for popular treatments - culori distincte pentru fiecare tratament
-  const treatmentsChartConfig = useMemo(() => {
-    const treatments = getPopularTreatments()
-    const config = {
-      count: {
-        label: "Număr",
-        color: "var(--chart-1)",
-      },
-    }
-    // Adaugă culori distincte pentru fiecare tratament
-    treatments.forEach((treatment, index) => {
-      config[`treatment_${index}`] = {
-        label: treatment.treatment,
-        color: `var(--chart-${(index % 5) + 1})`,
-      }
-    })
-    return config
-  }, [])
-
-  // Get current month name in Romanian
-  const getCurrentMonthName = () => {
-    const months = [
-      'Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie',
-      'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'
-    ]
-    return months[new Date().getMonth()]
-  }
-
-  // Transform recent activities from demo format to display format
-  const getRecentActivitiesData = () => {
-    if (!demoRecentActivities || demoRecentActivities.length === 0) {
-      return [
-        {
-          type: 'no-data',
-          title: 'Nu există activități recente',
-          description: 'Nu s-au găsit activități în ultima perioadă',
-          time: '',
-          icon: Activity,
-          color: 'text-muted-foreground'
-        }
-      ]
-    }
-
-    return demoRecentActivities.map(activity => {
-      // Map activity types to icons and colors
-      const getActivityConfig = (activityType) => {
-        switch (activityType) {
-          case 'appointment':
-            return { icon: Calendar, color: 'text-blue-500' }
-          case 'treatment':
-            return { icon: Activity, color: 'text-indigo-500' }
-          case 'patient':
-            return { icon: Users, color: 'text-green-500' }
-          case 'user':
-          case 'medic':
-          case 'doctor':
-            return { icon: Users, color: 'text-purple-500' }
-          case 'invoice':
-          case 'payment':
-            return { icon: CreditCard, color: 'text-emerald-500' }
-          case 'sale':
-            return { icon: TrendingUp, color: 'text-green-500' }
-          case 'inventory':
-          case 'product':
-            return { icon: Package, color: 'text-orange-500' }
-          default:
-            return { icon: Activity, color: 'text-gray-500' }
-        }
-      }
-
-      const config = getActivityConfig(activity.activityType || activity.type)
-      
-      // Format time
-      const formatTime = (timestamp) => {
-        const date = new Date(timestamp)
-        const now = new Date()
-        const diffInMinutes = Math.floor((now - date) / (1000 * 60))
-        
-        if (diffInMinutes < 1) return 'Acum câteva secunde'
-        if (diffInMinutes < 60) return `Acum ${diffInMinutes} minute`
-        if (diffInMinutes < 120) return `Acum 1 oră`
-        if (diffInMinutes < 1440) return `Acum ${Math.floor(diffInMinutes / 60)} ore`
-        return `Acum ${Math.floor(diffInMinutes / 1440)} zile`
-      }
-
-      // Helper function to safely extract string value from object or string
-      const extractString = (value) => {
-        if (!value) return null
-        if (typeof value === 'string') return value
-        if (typeof value === 'object' && value.name) return value.name
-        if (typeof value === 'object' && value.title) return value.title
-        return null
-      }
-
-      // Build detailed description based on activity type and available data
-      const buildDescription = (activity) => {
-        const parts = []
-        
-        // Add action if available
-        if (activity.action) {
-          parts.push(activity.action)
-        }
-        
-        // Add patient name if available
-        const patientName = extractString(activity.patientName)
-        if (patientName && activity.activityType !== 'user' && activity.activityType !== 'medic' && activity.activityType !== 'doctor') {
-          parts.push(`Pacient: ${patientName}`)
-        }
-        
-        // Add service/treatment name for appointments and treatments
-        const serviceName = extractString(activity.serviceName) || extractString(activity.treatmentName) || extractString(activity.treatment)
-        if ((activity.activityType === 'appointment' || activity.activityType === 'treatment') && serviceName) {
-          parts.push(serviceName)
-        }
-        
-        // Add medic name for appointments
-        const medicName = extractString(activity.medicName)
-        if (activity.activityType === 'appointment' && medicName) {
-          parts.push(medicName)
-        }
-        
-        // Add time for appointments
-        if (activity.activityType === 'appointment' && activity.time) {
-          parts.push(`Ora: ${activity.time}`)
-        }
-        
-        // Add amount for invoices/payments/sales/treatments
-        const amount = activity.amount || activity.price
-        if ((activity.activityType === 'invoice' || activity.activityType === 'payment' || activity.activityType === 'sale' || activity.activityType === 'treatment') && amount) {
-          parts.push(`${amount} RON`)
-        }
-        
-        // Add status if available
-        if (activity.status) {
-          const statusLabels = {
-            'scheduled': 'Programat',
-            'confirmed': 'Confirmat',
-            'completed': 'Finalizat',
-            'cancelled': 'Anulat',
-            'paid': 'Plătit',
-            'unpaid': 'Neplătit',
-            'pending': 'În așteptare'
-          }
-          parts.push(statusLabels[activity.status] || activity.status)
-        }
-        
-        // Fallback to description or default
-        if (parts.length === 0) {
-          const description = extractString(activity.description) || extractString(activity.subtitle)
-          return description || 'Activitate în sistem'
-        }
-        
-        return parts.join(' • ')
-      }
-
-      // Generate appropriate title based on activity type
-      const getActivityTitle = (activity) => {
-        const activityType = activity.activityType || activity.type
-        
-        switch(activityType) {
-          case 'appointment':
-            return 'Programare'
-          case 'treatment':
-            return 'Tratament'
-          case 'patient':
-            return 'Pacient'
-          case 'invoice':
-            return 'Factură'
-          case 'payment':
-            return 'Plată'
-          case 'sale':
-            return 'Vânzare'
-          case 'product':
-          case 'inventory':
-            return 'Produs'
-          case 'user':
-          case 'medic':
-          case 'doctor':
-            return 'Medic'
-          default:
-            return extractString(activity.title) || 'Activitate'
-        }
-      }
-
-      return {
-        type: activity.activityType || activity.type,
-        title: getActivityTitle(activity),
-        description: buildDescription(activity),
-        time: formatTime(activity.createdAt || activity.updatedAt || activity.timestamp),
-        icon: config.icon,
-        color: config.color
-      }
-    })
-  }
-
   return (
-    <div className="space-y-6 p-6">
-      {/* Main Grid - 2 columns on large screens, 1 on small/medium */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* CASETA 1: KPI Overview - Design modern cu gradient */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {/* Vizite Programate */}
-          <div className="card group hover:shadow-lg transition-shadow flex align-center justify-center">
-            <div className="card-content p-4 flex align-center justify-center">
-              <div className="flex flex-col gap-2 flex align-center justify-center">
-                <div className="flex items-center justify-between">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                    {getCurrentMonthName()}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-blue-600">
-                    {getTotalAppointments()}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">Programate</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Vizite Realizate */}
-          <div className="card group hover:shadow-lg transition-shadow flex align-center justify-center">
-            <div className="card-content p-4 flex align-center justify-center">
-              <div className="flex flex-col gap-2 flex align-center justify-center">
-                <div className="flex items-center justify-between">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                    {getCurrentMonthName()}
-                  </span>
-                </div>
-          <div>
-                  <p className="text-3xl font-bold text-green-600">
-                    {getCompletedAppointments()}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">Realizate</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Vizite Anulate */}
-          <div className="card group hover:shadow-lg transition-shadow flex align-center justify-center">
-            <div className="card-content p-4 flex align-center justify-center">
-              <div className="flex flex-col gap-2 flex align-center justify-center">
-                <div className="flex items-center justify-between">
-                  <XCircle className="h-5 w-5 text-red-600" />
-                  <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                    {getCurrentMonthName()}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-red-600">
-                    {getCancelledAppointments()}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">Anulate</p>
-                </div>
-              </div>
-            </div>
+    <div className="space-y-6">
+      {/* Top Row: Trends Chart (2/3) + Stats Distribution (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <AppointmentTrendsChart labels={{
+            title: config.kpiLabels.appointments + " Trends",
+            subtitle: "Daily status breakdown for " + config.kpiLabels.appointments
+          }} />
         </div>
 
-          {/* Pacienți Înregistrați */}
-          <div className="card group hover:shadow-lg transition-shadow flex align-center justify-center">
-            <div className="card-content p-4 flex align-center justify-center">
-              <div className="flex flex-col gap-2 flex align-center justify-center">
-                <div className="flex items-center justify-between">
-                  <Users className="h-5 w-5 text-purple-600" />
-                  <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
-                    Total
-                  </span>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-purple-600">
-                    {getTotalPatients()}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">Pacienți</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="lg:col-span-1">
+          <WebsiteBookingsCard
+            bookings={getWebsiteBookings()}
+            rating={getClinicRating()}
+            smsStats={getSmsStats()}
+            distributionData={getPopularTreatments()}
+            labels={config.websiteLabels}
+          />
+        </div>
+      </div>
 
-          {/* Încasări Luna Aceasta */}
-          <div className="card group hover:shadow-lg transition-shadow flex align-center justify-center">
-            <div className="card-content p-4 flex align-center justify-center">
-              <div className="flex flex-col gap-2 flex align-center justify-center">
-              <div className="flex items-center justify-between">
-                  <DollarSign className="h-5 w-5 text-emerald-600" />
-                  <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-                    {getCurrentMonthName()}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-emerald-600">
-                    {getMonthlyRevenue().toLocaleString('ro-RO')}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">Încasări RON</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Grad de Ocupare */}
-          <div className="card group hover:shadow-lg transition-shadow flex align-center justify-center">
-            <div className="card-content p-4 flex align-center justify-center">
-              <div className="flex flex-col gap-2 flex align-center justify-center">
-                <div className="flex items-center justify-between">
-                  <Percent className="h-5 w-5 text-green-600" />
-                  <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                    {getCurrentMonthName()}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-green-600">
-                    {`${getOccupancyRate()}%`}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">Grad de Ocupare</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Bottom Row: 3 Equal Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Weekly Status (Realized vs Cancelled) */}
+        <div className="lg:col-span-1">
+          <WeeklyStatusChart data={demoWeeklyStatus} />
         </div>
 
-        {/* CASETA 2: Programări Website + Metrici în dreapta */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Programări prin website</h3>
-          </div>
-          <div className="card-content">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
-              {/* Chart Radial pentru programări website - mai mic */}
-              <div className="flex items-center justify-center">
-                <ChartContainer
-                  config={websiteChartConfig}
-                  className="mx-auto aspect-square h-[200px]"
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadialBarChart
-                      data={websiteChartData}
-                      startAngle={0}
-                      endAngle={250}
-                      innerRadius={70}
-                      outerRadius={80}
-                    >
-                      <PolarGrid
-                        gridType="circle"
-                        radialLines={false}
-                        stroke="none"
-                        className="first:fill-muted last:fill-background"
-                        polarRadius={[76, 64]}
-                      />
-                      <RadialBar dataKey="visitors" background cornerRadius={10} />
-                      <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
-                        <Label
-                          content={({ viewBox }) => {
-                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                              return (
-                                <text
-                                  x={viewBox.cx}
-                                  y={viewBox.cy}
-                                  textAnchor="middle"
-                                  dominantBaseline="middle"
-                                >
-                                  <tspan
-                                    x={viewBox.cx}
-                                    y={viewBox.cy}
-                                    className="fill-foreground text-3xl font-bold"
-                                  >
-                                    {websiteChartData[0].visitors.toLocaleString()}
-                                  </tspan>
-                                  <tspan
-                                    x={viewBox.cx}
-                                    y={(viewBox.cy || 0) + 20}
-                                    className="fill-muted-foreground text-sm"
-                                  >
-                                    Programări
-                                  </tspan>
-                                </text>
-                              )
-                            }
-                          }}
-                        />
-                      </PolarRadiusAxis>
-                    </RadialBarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </div>
-
-              {/* Metrici în dreapta - fără chenare */}
-              <div className="space-y-6 flex flex-col justify-center">
-                {/* Rating Clinică */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <p className="text-sm font-medium">Rating</p>
-                    </div>
-                    <p className="text-xl font-bold">{getClinicRating().average.toFixed(1)}</p>
-                  </div>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star 
-                        key={star} 
-                        className={`h-4 w-4 ${star <= Math.floor(getClinicRating().average) ? 'fill-yellow-500 text-yellow-500' : 'text-gray-300'}`} 
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{getClinicRating().totalReviews} recenzii</p>
-                </div>
-
-                {/* SMS-uri Trimise */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4 text-blue-500" />
-                      <p className="text-sm font-medium">SMS-uri</p>
-                    </div>
-                    <p className="text-xl font-bold">{getSmsStats().sent}</p>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${getSmsStats().percentage}%` }}></div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{getSmsStats().percentage}% limită ({getSmsStats().sent}/{getSmsStats().limit})</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Center: Activity Density (Rest of density) */}
+        <div className="lg:col-span-1">
+          <ActivityOverview
+            recentActivities={denseRecentActivities}
+            funnelData={[]} // No funnel here
+            loading={false}
+            labels={config.activityLabels}
+          />
         </div>
 
-        {/* CASETA 3: Progress Medici + Tratamente */}
-        <div className="space-y-4">
-          {/* Chart Radial - Progres Medici cu legendă */}
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-title">Progresul medicilor azi</h3>
-            </div>
-            <div className="card-content pb-0">
-              {doctorProgressData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Activity className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground">
-                    Nu există programări pentru azi
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <ChartContainer
-                    config={doctorProgressConfig}
-                    className="mx-auto aspect-square h-[250px]"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadialBarChart data={doctorProgressData} innerRadius={30} outerRadius={110}>
-                        <RadialBar dataKey="progress" background />
-                      </RadialBarChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                  {/* Legendă cu medici */}
-                  <div className="card-footer">
-                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm width-full align-center justify-center">
-                      {doctorProgressData.map((item, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <div 
-                            className="h-3 w-3 rounded-full" 
-                            style={{ backgroundColor: `var(--chart-${index + 1})` }}
-                          />
-                          <span className="text-muted-foreground">{item.doctor}</span>
-                          <span className="font-medium">{item.progress}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-              </div>
-            </div>
-
-          {/* Chart Bar - Tratamente Populare */}
-          {getPopularTreatments().length === 0 ? (
-            <div className="card">
-              <div className="card-header">
-                <h3 className="card-title">Tratamente populare</h3>
-                <p className="text-sm text-muted-foreground">Cele mai solicitate tratamente luna aceasta</p>
-              </div>
-              <div className="card-content">
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Activity className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground">
-                    Nu există date despre tratamente populare
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="card">
-              <div className="card-header">
-                <h3 className="card-title">Tratamente populare</h3>
-                <p className="text-sm text-muted-foreground">Cele mai solicitate tratamente luna aceasta</p>
-              </div>
-              <div className="card-content">
-                <ChartContainer config={treatmentsChartConfig}>
-                  <BarChart accessibilityLayer data={getPopularTreatments()}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      dataKey="treatment"
-                      tickLine={false}
-                      tickMargin={10}
-                      axisLine={false}
-                      tickFormatter={(value) => value.length > 10 ? value.slice(0, 10) + '...' : value}
-                    />
-                    <ChartTooltip
-                      cursor={false}
-                      content={<ChartTooltipContent hideLabel />}
-                    />
-                    <Bar dataKey="count" radius={8}>
-                      {getPopularTreatments().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              </div>
-            </div>
-          )}
+        {/* Right: Funnel */}
+        <div className="lg:col-span-1">
+          <ConversionFunnelCard
+            funnelData={funnelData}
+            labels={config.activityLabels}
+          />
         </div>
-
-        {/* CASETA 4: Activități Recente */}
-        <div className="card">
-          <div className="card-header">
-            <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              <h3 className="card-title">Activități Recente</h3>
-            </div>
-          </div>
-          <div className="card-content">
-            <div className="max-h-[700px] overflow-y-auto space-y-4 pr-2">
-              {getRecentActivitiesData().map((activity, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className={`h-10 w-10 rounded-full bg-muted flex items-center justify-center ${activity.color}`}>
-                    <activity.icon className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{activity.title}</p>
-                    <p className="text-sm text-muted-foreground">{activity.description}</p>
-                    {activity.time && (
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {activity.time}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="card-footer">
-            <button className="btn btn-outline btn-sm w-full">
-              Vezi toate activitățile
-            </button>
-          </div>
-        </div>
-
       </div>
     </div>
   )

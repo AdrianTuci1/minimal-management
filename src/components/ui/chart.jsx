@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ResponsiveContainer } from "recharts"
+import { ResponsiveContainer, Legend } from "recharts"
 import { cn } from "@/lib/utils"
 
 // Chart configuration type (just a type/interface placeholder for JSX)
@@ -87,10 +87,10 @@ export const ChartTooltipContent = React.forwardRef(
           {payload.map((item, index) => {
             const key = item.dataKey || item.name || `item-${index}`
             const color = item.color || `hsl(var(--chart-${(index % 5) + 1}))`
-            
+
             let displayValue = item.value
             let displayName = item.name || "Value"
-            
+
             if (formatter) {
               const formatted = formatter(item.value, item.name, item)
               if (Array.isArray(formatted)) {
@@ -100,7 +100,7 @@ export const ChartTooltipContent = React.forwardRef(
                 displayValue = formatted
               }
             }
-            
+
             return (
               <div key={key} className="flex items-center gap-2 text-sm">
                 <div
@@ -118,4 +118,56 @@ export const ChartTooltipContent = React.forwardRef(
   }
 )
 ChartTooltipContent.displayName = "ChartTooltipContent"
+
+// ChartLegend component - wrapper for recharts Legend
+export const ChartLegend = React.forwardRef(({ className, icon, ...props }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn("flex items-center justify-center pt-4", className)}
+      {...props}
+    />
+  )
+})
+ChartLegend.displayName = "ChartLegend"
+
+// ChartLegendContent component - custom legend content
+export const ChartLegendContent = React.forwardRef(
+  ({ className, payload, verticalAlign = "bottom", nameKey }, ref) => {
+    if (!payload?.length) {
+      return null
+    }
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "flex items-center justify-center gap-4 text-sm",
+          verticalAlign === "top" ? "pb-4" : "pt-4",
+          className
+        )}
+      >
+        {payload.map((item) => {
+          const key = `${item.value || item.dataKey || "value"}`
+          // Extract color from payload or config if accessible (simplified here)
+          const color = item.color
+
+          return (
+            <div
+              key={key}
+              className="flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground"
+            >
+              <div
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-muted-foreground">{item.value}</span>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+)
+ChartLegendContent.displayName = "ChartLegendContent"
 

@@ -61,6 +61,8 @@ export const EntityDrawer = ({
                   label={field.label}
                   type={field.type}
                   editable={isEditable}
+                  options={field.options}
+                  placeholder={field.placeholder}
                   value={value}
                   onChange={(newValue) => onFieldChange(field.id, newValue)}
                 >
@@ -158,6 +160,8 @@ export const EntityDrawer = ({
                   label={field.label}
                   type={field.type}
                   editable={isEditable}
+                  options={field.options}
+                  placeholder={field.placeholder}
                   value={value}
                   onChange={(newValue) => onFieldChange(field.id, newValue)}
                 />

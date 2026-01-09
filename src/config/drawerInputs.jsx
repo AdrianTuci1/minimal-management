@@ -76,8 +76,15 @@ export const drawerInputs = {
     {
       id: "status",
       label: "Status",
-      type: "text",
-      accessor: (row) => row?.status || "",
+      type: "select",
+      options: [
+        { label: "Nou", value: "nou", color: "#3b82f6" },
+        { label: "Contactat", value: "contactat", color: "#f59e0b" },
+        { label: "Ofertat", value: "ofertat", color: "#8b5cf6" },
+        { label: "Câștigat", value: "castigat", color: "#10b981" },
+        { label: "Pierdut", value: "pierdut", color: "#ef4444" },
+      ],
+      accessor: (row) => row?.status || "nou",
       editable: true,
     },
     {
@@ -113,9 +120,14 @@ export const drawerInputs = {
     {
       id: "status",
       label: "Status",
-      type: "text",
-      accessor: (row) => row?.status || "",
-      editable: false,
+      type: "select",
+      options: [
+        { label: "Activ", value: "activ", color: "#10b981" },
+        { label: "Inactiv", value: "inactiv", color: "#ef4444" },
+        { label: "În concediu", value: "concediu", color: "#f59e0b" },
+      ],
+      accessor: (row) => row?.status || "activ",
+      editable: true,
     },
     {
       id: "patientsToday",
@@ -185,8 +197,12 @@ export const drawerInputs = {
     {
       id: "status",
       label: "Status",
-      type: "text",
-      accessor: (row) => row?.status || "",
+      type: "select",
+      options: [
+        { label: "Activ", value: "activ", color: "#10b981" },
+        { label: "Inactiv", value: "inactiv", color: "#ef4444" },
+      ],
+      accessor: (row) => row?.status || "activ",
       editable: true,
     },
   ],
@@ -284,23 +300,36 @@ export const drawerInputs = {
       {
         id: "patient",
         label: "Pacient",
-        type: "text",
+        type: "search",
         accessor: (row) => row?.patient || "",
         editable: true,
+        options: [
+          { label: "Popescu Ion", value: "Popescu Ion" },
+          { label: "Ionescu Maria", value: "Ionescu Maria" },
+          { label: "Georgescu Vlad", value: "Georgescu Vlad" },
+        ]
       },
       {
         id: "treatment",
         label: "Tratament",
-        type: "text",
+        type: "search",
         accessor: (row) => row?.treatment || "",
         editable: true,
+        options: [
+          { label: "Consultatie primara", value: "Consultatie primara" },
+          { label: "Detartraj", value: "Detartraj" },
+          { label: "Obturatie", value: "Obturatie" },
+        ]
       },
       {
         id: "start",
         label: "Ora început",
-        type: "text",
+        type: "time",
         accessor: (row) => {
           if (!row?.start) return ""
+          // If already in HH:MM format
+          if (typeof row.start === 'string' && row.start.includes(':')) return row.start
+
           const hours = Math.floor(row.start / 60)
           const mins = row.start % 60
           return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`
@@ -317,8 +346,16 @@ export const drawerInputs = {
       {
         id: "status",
         label: "Status",
-        type: "text",
-        accessor: (row) => row?.status || "",
+        type: "select",
+        options: [
+          { label: "Programat", value: "programat", color: "#3b82f6" },
+          { label: "Confirmat", value: "confirmat", color: "#10b981" },
+          { label: "În așteptare", value: "asteptare", color: "#f59e0b" },
+          { label: "Anulat", value: "anulat", color: "#ef4444" },
+          { label: "Finalizat", value: "finalizat", color: "#6b7280" },
+          { label: "Neprezentare", value: "neprezentare", color: "#ef4444" },
+        ],
+        accessor: (row) => row?.status || "programat",
         editable: true,
       },
     ]
